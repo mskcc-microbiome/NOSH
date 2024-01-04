@@ -1,0 +1,27 @@
+Package: NOSH
+Title: Shiny app for nutritional optimization for science and health
+Version: 0.0.0.9000
+Authors@R: 
+    person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut", "cre")),
+    person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut", "cre")),
+    person("Nick", "Waters", , "nickp60@gmail.com", role = c("aut", "cre")),
+Description: Simplify interactions between nutrition management, clinical data, and FNDDS
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    magrittr,
+    shiny,
+    rhandsontable,
+    dplyr,
+    janitor,
+    lubridate,
+    tidyr,
+    readr,
+    shinyjs,
+    stringr,
+    DT,
+    readxl,
+Depends: 
+    R (>= 2.10),

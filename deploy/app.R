@@ -1,0 +1,2 @@
+library(dietapp)
+dietapp::dietapp()

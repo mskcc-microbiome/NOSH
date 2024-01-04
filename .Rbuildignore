@@ -1,0 +1,5 @@
+^LICENSE\.md$
+^data-raw$
+^.*\.Rproj$
+^\.Rproj\.user$
+^Intake Analysis Report\.xlsx$
