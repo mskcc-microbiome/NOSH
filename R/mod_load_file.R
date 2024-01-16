@@ -7,16 +7,15 @@ mod_showfile_ui <- function(id) {
 mod_loadfile_server <- function(id) {
   
   moduleServer(id, function(input, output, session) {
-    unit_table <- load_unit_table()
     raw_file <- reactive({
       req(input$upload)
-      ext <- clean_diet_file(input$upload$datapath, unit_table)
+      ext <- clean_diet_file(input$upload$datapath)
       print(ext)
       
     })
     output$diet_file <- rhandsontable::renderRHandsontable({
       rhandsontable::rhandsontable(raw_file()) %>% 
-        hot_cols(fixedColumnsLeft = 2)
+        rhandsontable::hot_cols(fixedColumnsLeft = 2)
     })
   })
   

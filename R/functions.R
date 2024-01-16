@@ -10,7 +10,7 @@
 # library(janitor)
 
 
-clean_diet_file <- function(filepath, unit_table){
+clean_diet_file <- function(filepath){
   computrition_export_raw <- readxl::read_excel(filepath) %>%
     select(where(function(x) any(!is.na(x))))
   
@@ -32,7 +32,7 @@ clean_diet_file <- function(filepath, unit_table){
     mutate(mrn = as.integer(mrn),
            date_intake = case_when(
              stringr::str_detect(menu_item_name, "Date: ") ~ lubridate::mdy(menu_item_name), 
-             TRUE ~ NA_Date_)) %>%
+             TRUE ~ lubridate::NA_Date_)) %>%
     tidyr::fill(c("meal", "mrn", "date_intake"), .direction = "down") %>%
     filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} [value|average|total])|(condiments, salt|pepper)|(\\*{8})") &
              !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
@@ -50,8 +50,8 @@ clean_diet_file <- function(filepath, unit_table){
              function(x) as.numeric(readr::parse_number(x)),
              .names = "{col}_numeric"),
       serving_amt_numeric = case_when(
-        str_detect(serving_amt, "1/2") ~ 0.5,
-        str_detect(serving_amt, "1/4") ~ 0.25,
+        stringr::str_detect(serving_amt, "1/2") ~ 0.5,
+        stringr::str_detect(serving_amt, "1/4") ~ 0.25,
         TRUE ~ serving_amt_numeric
       ),
       food_nsc = sub("^\\^", "", menu_item_name),
@@ -79,30 +79,3 @@ clean_diet_file <- function(filepath, unit_table){
 
 
 
-load_unit_table <- function() {
-  prefix_vdb <- ifelse(Sys.info()['sysname'] == 'Darwin',   '/Volumes/vandenBrinkLab/',  '//rtssdc/vandenBrinkLab/')
-  path_study_folder <- file.path(prefix_vdb, '_clinical_research_team_folder/diet_study/testing_diet_data_processing/food_codes/')
-  path_unit_table <- file.path(path_study_folder, "148_both_batches_UNIT_table_EN_exclu.csv")
-  unit_table <- read.csv(path_unit_table) %>% clean_names()
-  
-  # Due to internal changes in computrition, need to include menu items with out any arbitrary dates affixed to them (eg "2017) - computrition files will alternately contain dates or no dates in menu item names
-  re <- c("20[:digit:]{2} {0,1},{0,1}", "\\(\\.{0,1}[:digit:]{1}\\)")
-  re <- c(re[1], re[2], paste(re, collapse = "|"))
-  
-  for(r in re) {
-    unit_table_new <- unit_table %>%
-      mutate(
-        index = 1:nrow(.),
-        food_nsc = stringr::str_remove_all(food_nsc, r) %>% trimws("both")
-      )
-    
-    unit_table <- unit_table %>%
-      mutate(index = 1:nrow(.)) %>%
-      rbind(unit_table_new) %>%
-      arrange(index) %>%
-      select(-index) %>%
-      distinct_at(vars(-food_all), .keep_all = T)
-  }
-  
-  return(unit_table)
-}

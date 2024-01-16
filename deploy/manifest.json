@@ -421,12 +421,11 @@
       }
     },
     "dietapp": {
-      "Source": "Git",
-      "Repository": null,
+      "Source": "msk",
+      "Repository": "http://rspm.mskcc.org/MSKREPO/latest",
       "description": {
         "Package": "dietapp",
         "Title": "What the Package Does (One Line, Title Case)",
-        "Version": "0.0.0.9000",
         "Authors@R": "\n    person(\"First\", \"Last\", , \"first.last@example.com\", role = c(\"aut\", \"cre\"),\n           comment = c(ORCID = \"YOUR-ORCID-ID\"))",
         "Description": "What the package does (one paragraph).",
         "License": "MIT + file LICENSE",
@@ -435,14 +434,15 @@
         "RoxygenNote": "7.2.3",
         "Imports": "magrittr, shiny, rhandsontable, dplyr, janitor, lubridate,\ntidyr, readr, shinyjs, stringr, DT, readxl,",
         "Depends": "R (>= 2.10),",
-        "RemoteType": "xgit",
-        "RemoteUrl": "https://github.mskcc.org/microbiome/diet_data_shiny_app.git",
-        "RemoteSha": "1afd0c9859bab48460778f732f97b761ff6373bd",
+        "Repository": "RSPM",
+        "RemoteSha": "6464f82eecd276bf52f026963ace31b83e09ff8b",
+        "Version": "0.0.6",
+        "Date": "2024-01-05",
         "NeedsCompilation": "no",
-        "Packaged": "2024-01-04 14:42:20 UTC; nwaters",
-        "Author": "First Last [aut, cre] (YOUR-ORCID-ID)",
+        "Packaged": "2024-01-05 21:16:27 UTC; rstudio-pm",
+        "Author": "First Last [aut, cre] (<https://orcid.org/YOUR-ORCID-ID>)",
         "Maintainer": "First Last <first.last@example.com>",
-        "Built": "R 4.2.1; ; 2024-01-04 14:42:21 UTC; unix"
+        "Built": "R 4.2.1; ; 2024-01-05 21:17:44 UTC; unix"
       }
     },
     "digest": {
