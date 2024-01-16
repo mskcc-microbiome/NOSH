@@ -1,10 +1,11 @@
 Package: NOSH
 Title: Shiny app for nutritional optimization for science and health
 Version: 0.0.0.9000
-Authors@R: 
-    person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut", "cre")),
-    person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut", "cre")),
-    person("Nick", "Waters", , "nickp60@gmail.com", role = c("aut", "cre")),
+Authors@R: c(
+    person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut")),
+    person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut" )),
+    person("Nick", "Waters", , "nickp60@gmail.com", role = c("aut", "cre"))
+    )
 Description: Simplify interactions between nutrition management, clinical data, and FNDDS
 License: MIT + file LICENSE
 Encoding: UTF-8
