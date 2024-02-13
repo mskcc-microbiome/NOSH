@@ -10,7 +10,7 @@ tbl_height = 500
 
 dietapp <- function(...){
   custom_food <- get_redcap_unit_table()
-  incomplete_data <- get_meal_entries_lacking_fndds_match(custom_food)
+  incomplete_data <- get_meal_entries_lacking_fndds_match()
   ui <- navbarPage(
     title = "Diet data processing",
     tabPanel(

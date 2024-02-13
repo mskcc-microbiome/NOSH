@@ -7,7 +7,7 @@ files <- list("foodandbev.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/
 )
 for (i in 1:length(files)){
   if (!file.exists(names(files)[i])){
-    download.file(files[[i]], names(files)[i])
+    download.file(files[[i]], names(files)[i],  mode="wb")
   }
 }
 
@@ -51,17 +51,17 @@ traverse_foods_6 <- unnest_one_level_of_foodingredients(traverse_foods_5)
 traverse_foods_7 <- unnest_one_level_of_foodingredients(traverse_foods_6)
 
 # create a distinct dataset by merging all together then culling any rows where ingredient is not an ingredient
-fndds_fai <- bind_rows(fndds_fai_raw, traverse_foods_1, traverse_foods_2, traverse_foods_3, traverse_foods_4,traverse_foods_5,traverse_foods_6,traverse_foods_7) %>% 
-  filter(!ingredient_code %in% fndds_fai_raw$fndds_food_code) %>% 
-  arrange(fndds_food_code, desc(ingredient_weight_g))
+fndds_fai <- dplyr::bind_rows(fndds_fai_raw, traverse_foods_1, traverse_foods_2, traverse_foods_3, traverse_foods_4,traverse_foods_5,traverse_foods_6,traverse_foods_7) %>% 
+  dplyr::filter(!ingredient_code %in% fndds_fai_raw$fndds_food_code) %>% 
+  dplyr::arrange(fndds_food_code, desc(ingredient_weight_g))
 
 # sanity check portion size
-raw_portions <- fndds_fai_raw %>% group_by(fndds_food_code) %>% summarize(portion=sum(ingredient_weight_g))
-unnested_portions <- fndds_fai %>% group_by(fndds_food_code) %>% summarize(portion=sum(ingredient_weight_g))
+raw_portions <- fndds_fai_raw %>% dplyr::group_by(fndds_food_code) %>% dplyr::summarize(portion=sum(ingredient_weight_g))
+unnested_portions <- fndds_fai %>% dplyr::group_by(fndds_food_code) %>% dplyr::summarize(portion=sum(ingredient_weight_g))
 
 # anti-joins should result in now rows in both directions
-testthat::expect_equal(nrow(anti_join(unnested_portions, raw_portions)), 0)
-testthat::expect_equal(nrow(anti_join(raw_portions, unnested_portions)), 0)
+testthat::expect_equal(nrow(dplyr::anti_join(unnested_portions, raw_portions)), 0)
+testthat::expect_equal(nrow(dplyr::anti_join(raw_portions, unnested_portions)), 0)
 
 
 # portions 
