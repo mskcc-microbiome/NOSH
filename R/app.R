@@ -19,8 +19,10 @@ dietapp <- function(...){
           width = tbl_width, height = tbl_height,
           fluidRow(
             column(mod_loadfile_ui('uploadfile'), width = 2),
+            # column(mod_redcapstatus_ui(''))
           ),
-          mod_showfile_ui("uploadfile")
+          mod_showfile_ui("uploadfile"),
+          mod_redcapstatus_ui("number of rows excluded") # JS added this
         )
       )
     ),

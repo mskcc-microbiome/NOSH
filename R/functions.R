@@ -1,13 +1,15 @@
-# library(shiny)
-# library(rhandsontable)
-# #library(ggplot2)
-# #library(tidyverse)
-# library(tidyr)
-# library(dplyr)
-# library(stringr)
-# library(lubridate)
-# #library(readxl)
-# library(janitor)
+library(shiny)
+library(rhandsontable)
+#library(ggplot2)
+#library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(lubridate)
+#library(readxl)
+library(janitor)
+library(REDCapR)
+library(readr)
 
 
 clean_diet_file <- function(filepath){
@@ -77,5 +79,82 @@ clean_diet_file <- function(filepath){
   return(computrition_export_clean)
 }
 
+
+
+pull_diet_redcap <- function(mrn_vec) {
+  dotenv::load_dot_env()
+  
+  print(mrn_vec)
+  cert_location <- system.file("cacert.pem", package = "openssl")
+  if (file.exists(cert_location)) {
+    config_options <- list(cainfo = cert_location,
+                           content='record',
+                           action='export',
+                           format='csv',
+                           type='flat',
+                           csvDelimiter='',
+                           rawOrLabel='raw',
+                           rawOrLabelHeaders='raw',
+                           exportCheckboxLabel='false',
+                           exportSurveyFields='false',
+                           exportDataAccessGroups='false',
+                           returnFormat='csv'
+    )
+    
+    # filter_statement <- paste0("[eb_mrn] in (", toString(sprintf("'%s'", mrn_vec)), ")")
+    # print(filter_statement)
+    
+    redcap_pull = lapply(mrn_vec, FUN = function(mrn){
+      
+    ds_different_cert_file1 <- redcap_read_oneshot(
+      col_types = cols(eb_mrn = col_integer()),
+      # records = mrn_vec,
+      # forms = c("computrition_data"),
+      fields = c("record_id", "eb_mrn"),
+      filter_logic = paste0("[eb_mrn]=", mrn),
+      # filter_logic = filter_statement,
+      redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+      token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+      config_options = config_options
+    )$data
+    
+    # print(str(ds_different_cert_file1))
+    
+    
+    if(nrow(ds_different_cert_file1) > 0) {
+      ds_different_cert_file2 <- redcap_read_oneshot(
+        col_types = cols(eb_mrn = col_integer(), raw_food_serving_unit = col_character()),
+        records = ds_different_cert_file1$record_id,
+        # forms = c("computrition_data"),
+        fields = c("record_id", "meal_date", "eb_mrn", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten"),
+        # filter_logic = paste0("[eb_mrn]=", mrn_vec),
+        # filter_logic = paste0("[record_id]=", ds_different_cert_file1$record_id),
+        redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+        token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+        config_options = config_options
+      )$data
+    }
+    
+    
+    # print(str(ds_different_cert_file2))
+    
+    }) %>%
+      bind_rows()
+    
+    
+    
+    if(nrow(redcap_pull) > 0) {
+      redcap_pull <- redcap_pull%>%
+        fill(eb_mrn) %>%
+        filter(redcap_repeat_instrument == "computrition_data")
+    }
+
+    print(str(redcap_pull))
+    
+  }
+  
+  redcap_pull
+  
+}
 
 
