@@ -18,27 +18,24 @@ get_redcap_unit_table <- function(){
 }
 
 get_meal_entries_lacking_fndds_match <- function(){
-  # read in custom portions
-  # this will be replaced by calls to recap
-  
-  custom_foods_and_codes <- custom_food %>%
+  custom_foods_and_codes <- custom_food[!complete.cases(custom_food), ] %>%
     mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g))%>%
-
-    select(raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>% 
-    distinct() %>% 
+    select(raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
+    distinct() %>%
     left_join(fndds_paw %>% select(fndds_food_code, fndds_main_food_description) %>% distinct(), by="fndds_food_code")
 
-  # do a 2 part join -- first to match the food code with the name (above), then to match up the entries with portions
-  # otherwise, we have foods/codes matched but no description due to a missing portion. 
+  #do a 2 part join -- first (above) to match the food code with the name (above), then to match up the entries with portions
+  #otherwise, we have foods/codes matched but no description due to a missing portion.
   df <- full_join(
-    custom_foods_and_codes, 
+    custom_foods_and_codes,
     fndds_paw %>% select(fndds_food_code,  fndds_main_food_description, fndds_portion_description, fndds_portion_weight_g),
     by=c("fndds_food_code", "fndds_main_food_description", "fndds_portion_description", "fndds_portion_weight_g")
-  ) %>% 
+  ) %>%
     distinct() %>%
-    filter(if_any(everything(), is.na)) %>% 
+    filter(if_any(everything(), is.na)) %>%
     mutate(food_code_desc = paste(fndds_food_code, fndds_main_food_description))
   df
+
 }
 
 
