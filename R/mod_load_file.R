@@ -9,9 +9,7 @@ mod_loadfile_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     raw_file <- reactive({
       req(input$upload)
-      ext <- clean_diet_file(input$upload$datapath)
-      print(ext)
-      
+      clean_diet_file(input$upload$datapath)
     })
     output$diet_file <- rhandsontable::renderRHandsontable({
       rhandsontable::rhandsontable(raw_file()) %>% 

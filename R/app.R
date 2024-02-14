@@ -16,13 +16,13 @@ dietapp <- function(...){
     tabPanel(
       title = "Computrition data entry",
       fluidPage(
-        mainPanel(
-          width = tbl_width, height = tbl_height,
-          fluidRow(
-            column(mod_loadfile_ui('uploadfile'), width = 2),
-          ),
-          mod_showfile_ui("uploadfile")
-        )
+       mainPanel(
+         width = tbl_width, height = tbl_height,
+         fluidRow(
+           column(mod_loadfile_ui('uploadfile'), width = 2),
+         ),
+          mod_showfile_ui('uploadfile')
+       )
       )
     ),
     tabPanel(
@@ -39,10 +39,6 @@ dietapp <- function(...){
       title = "meal outcomes",
       fluidPage(
         shinyjs::useShinyjs(),
-        mod_matchFNDDS_foodentry_ui("foodmatch", incomplete_data),
-        mod_matchFNDDS_portionentry_ui("foodmatch", incomplete_data),
-        mod_matchFNDDS_submitter_ui("foodmatch"),
-        mod_matchFNDDS_ui("foodmatch")
       )
     )
   )
