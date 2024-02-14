@@ -1,13 +1,14 @@
 # prepare data
 library(magrittr)
+
 files <- list("foodandbev.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Foods%20and%20Beverages.xlsx",
               "portionsandweights.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Portions%20and%20Weights.xlsx",
               "foodandingredients.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20FNDDS%20Ingredients.xlsx",
-              "nutrients.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Ingredient%20Nutrient%20Values.xlsx"
+              "nutrients.xlxs"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Ingredient%20Nutrient%20Values.xlsx"
 )
 for (i in 1:length(files)){
   if (!file.exists(names(files)[i])){
-    download.file(files[[i]], names(files)[i],  mode="wb")
+    download.file(files[[i]], names(files)[i])
   }
 }
 
@@ -23,18 +24,37 @@ fndds_inv <- readxl::read_xlsx(names(files)[4], skip = 1) %>% janitor::clean_nam
 # take a look at 14650170 vs  14650160:  sometimes foods have over foods as ingredients, as well as the actual ingredients found in the official fndds ingredients list.
 # we have to "unnest" this, til we have no food_codes in the ingredients_columns.
 # Could do this recursively but why would i do that to myself on a monday?
+
+# Also, for some reason, Crepe, with meat (58120110) has two milk 11100000 entries (2 and 8): one for 195.2g and one for 162.748g.
+# I had to fix that below.  Thats just my lot in life.
+
 fndds_fai_raw <- readxl::read_xlsx(names(files)[3], skip = 1) %>% janitor::clean_names() %>% 
   rename(
     fndds_food_code=food_code,
-    fndds_main_food_description=main_food_description)%>%
-  mutate(id=dplyr::row_number())
+    fndds_main_food_description=main_food_description) %>% 
+  filter(!(fndds_food_code == 58120110 & seq_num == 8)) %>% 
+  mutate(ingredient_weight_g = ifelse(fndds_food_code == 58120110 & seq_num == 2,  195.200 + 162.748, ingredient_weight_g))
+
+
 
 
 # if you aren't nauseous, you aren't looking hard enough 
 unnest_one_level_of_foodingredients <- function(df){
+  # Note the first group_by and summmarize deals with cases where compound foods contain two foods that share ingredients.
+  # Eg chicken wings 24168020 consists of [24168000 and 24168010], both of which have 81100000 Table fat, NFS.
+  # if we dont aggregate before we do our joins we end up with bad calculations for the total proportions
+  # those shared sub-ingredients should contain
+  
+  # Note also that we have to average the moisture retention. See how Fish NFS (26100110) has 2 (of 4) ingredients
+  # 26100130 for baked and breaded as well as 26100140 for fried. The batter/breading 99995000 has two different moisture contents
   df %>% 
     dplyr::filter(ingredient_code %in% fndds_fai_raw$fndds_food_code) %>% 
-    dplyr::left_join(fndds_fai_raw %>% dplyr::select(fndds_food_code, ingredient_code, ingredient_description, ingredient_weight_g, moisture_change_percent) %>% dplyr::distinct(), by=c("ingredient_code" = "fndds_food_code")) %>%
+    dplyr::group_by(fndds_food_code, fndds_main_food_description, wweia_category_number, wweia_category_description, ingredient_code, ingredient_description, retention_code) %>% 
+    dplyr::summarise(ingredient_weight_g = sum(ingredient_weight_g),
+                     moisture_change_percent = mean(moisture_change_percent, na.rm = TRUE),
+                     seq_num=1) %>% 
+    dplyr::ungroup() %>% 
+    dplyr::left_join(fndds_fai_raw %>% dplyr::select(fndds_food_code, ingredient_code, ingredient_description, ingredient_weight_g, moisture_change_percent) %>% distinct(), by=c("ingredient_code" = "fndds_food_code")) %>%
     dplyr::group_by(fndds_food_code, fndds_main_food_description, ingredient_code) %>% 
     dplyr::mutate(ingredient_weight_g = (ingredient_weight_g.y * ingredient_weight_g.x)/sum(ingredient_weight_g.y)) %>% 
     dplyr::ungroup() %>% 
@@ -56,8 +76,8 @@ fndds_fai <- dplyr::bind_rows(fndds_fai_raw, traverse_foods_1, traverse_foods_2,
   dplyr::arrange(fndds_food_code, desc(ingredient_weight_g))
 
 # sanity check portion size
-raw_portions <- fndds_fai_raw %>% dplyr::group_by(fndds_food_code) %>% dplyr::summarize(portion=sum(ingredient_weight_g))
-unnested_portions <- fndds_fai %>% dplyr::group_by(fndds_food_code) %>% dplyr::summarize(portion=sum(ingredient_weight_g))
+raw_portions <- fndds_fai_raw %>% dplyr::group_by(fndds_food_code) %>% dplyr::summarize(portion=round(sum(ingredient_weight_g),4))
+unnested_portions <- fndds_fai %>% dplyr::group_by(fndds_food_code) %>% dplyr::summarize(portion=round(sum(ingredient_weight_g),4))
 
 # anti-joins should result in now rows in both directions
 testthat::expect_equal(nrow(dplyr::anti_join(unnested_portions, raw_portions)), 0)

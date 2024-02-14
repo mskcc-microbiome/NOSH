@@ -94,8 +94,8 @@ redcap_write(ds = tmp, overwrite_with_blanks = FALSE,
 
 
 
-# if needing to clear the table.  Proceed with fear and trepidation
-# batchsize = 10
+## Use this if needing to clear the table.  Proceed with fear and trepidation
+# batchsize = 50
 # for(batch in 1:ceiling(nrow(DF))){
 #   ids <- c((((batch - 1) * batchsize) + 1):(batch*batchsize))
 #   ids <- ids[ids %in% DF$record_id]
