@@ -4,13 +4,25 @@ mod_loadfile_ui <- function(id) {
 mod_showfile_ui <- function(id) {
   rhandsontable::rHandsontableOutput(NS(id, 'diet_file'), width = tbl_width, height = tbl_height)
 }
+
+mod_redcapstatus_ui <- function(id) {
+  textOutput(NS(id, 'status'))
+  }
+
 mod_loadfile_server <- function(id) {
   
   moduleServer(id, function(input, output, session) {
     raw_file <- reactive({
       req(input$upload)
       ext <- clean_diet_file(input$upload$datapath)
+      
       print(ext)
+      
+      redcap_current <- pull_diet_redcap(unique(as.integer(ext$mrn)))
+      print(redcap_current)
+      output$status <- renderText(nrow(redcap_current)) #JS added "renderText"
+      
+      ext
       
     })
     output$diet_file <- rhandsontable::renderRHandsontable({
@@ -30,3 +42,4 @@ mod_loadfile_demo <- function() {
   
 }
 mod_loadfile_demo()
+

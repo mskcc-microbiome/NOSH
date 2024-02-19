@@ -9,7 +9,7 @@ tbl_height = 500
 # dorito (diet observations registered in tables, obviously)
 
 dietapp <- function(...){
-  custom_food <- get_redcap_unit_table()
+  custom_food <<- get_redcap_unit_table()
   incomplete_data <- get_meal_entries_lacking_fndds_match()
   ui <- navbarPage(
     title = "Diet data processing",
@@ -19,11 +19,11 @@ dietapp <- function(...){
         mainPanel(
           width = tbl_width, height = tbl_height,
           fluidRow(
-            column(mod_loadfile_ui('uploadfile'), width = 2),
-            # column(mod_redcapstatus_ui(''))
+            column(mod_loadfile_ui('uploadfile'), width = 2)#,
+            # column(mod_redcapstatus_ui('uploadfile'), width = 2)
           ),
-          mod_showfile_ui("uploadfile"),
-          mod_redcapstatus_ui("number of rows excluded") # JS added this
+          mod_showfile_ui("uploadfile"), 
+          # mod_redcapstatus_ui("rows_excluded") # JS added this
         )
       )
     ),
