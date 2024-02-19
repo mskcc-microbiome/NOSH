@@ -234,7 +234,7 @@ mod_matchFNDDS_server <- function(id, df) {
   })
 }
 mod_matchFNDDS_demo <- function() {
-  custom_food <- get_redcap_unit_table()
+  custom_food <<- get_redcap_unit_table()
   incomplete_data <- get_meal_entries_lacking_fndds_match()
   ui <- fluidPage(
     # make sure this is enable in the ui, not in the script itself!

@@ -149,7 +149,7 @@ pull_diet_redcap <- function(mrn_vec) {
         filter(redcap_repeat_instrument == "computrition_data")
     }
 
-    print(str(redcap_pull))
+    # print(str(redcap_pull))
     
   }
   
