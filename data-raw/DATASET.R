@@ -4,7 +4,8 @@ library(magrittr)
 files <- list("foodandbev.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Foods%20and%20Beverages.xlsx",
               "portionsandweights.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Portions%20and%20Weights.xlsx",
               "foodandingredients.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20FNDDS%20Ingredients.xlsx",
-              "nutrients.xlxs"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Ingredient%20Nutrient%20Values.xlsx"
+              "nutrients.xlxs"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Ingredient%20Nutrient%20Values.xlsx",
+              "foodsummary.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20FNDDS%20Nutrient%20Values.xlsx"
 )
 for (i in 1:length(files)){
   if (!file.exists(names(files)[i])){
@@ -111,4 +112,16 @@ dev_data$date_intake <- factor(dev_data$date_intake, labels=random_dates)
 #          fndds_portion_unit=NA,
 #          fndds_portion_weight_g=NA) %>% 
 #     select(food_nsc, food_code, raw_portion_unit, raw_to_fndds_unit_matcher, fndds_portion_unit, fndds_portion_weight_g)
-usethis::use_data(fndds_fab, fndds_inv, fndds_fai, fndds_paw, dev_data, internal = TRUE, overwrite = TRUE)
+
+
+fndds_summary <- readxl::read_xlsx(names(files)[5], skip = 1, col_types = "text") %>% janitor::clean_names() %>% 
+  rename(
+    fndds_food_code=food_code,
+    fndds_main_food_description=main_food_description)
+
+
+## Get unittable from redcap
+dotenv::load_dot_env()
+unittable <- get_redcap_unit_table()
+
+usethis::use_data(fndds_fab, fndds_inv, fndds_fai, fndds_paw, fndds_summary, dev_data,unittable, internal = TRUE, overwrite = TRUE)
