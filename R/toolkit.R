@@ -26,3 +26,17 @@ pt_data_full_merge <- dplyr::left_join(pt_data_w_unit_table %>% dplyr::filter(!i
 return(pt_data_full_merge)
 
 }
+
+
+#' tabulate patient nutrition 
+#'
+#' @param pt_data_full_merge 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+tabulate_pt_nutrition <- function(pt_data_full_merge, mrn, dt_start, dt_end, nutrient_list) {
+  
+  
+}
