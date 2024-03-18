@@ -5,9 +5,12 @@ mod_showfile_ui <- function(id) {
   rhandsontable::rHandsontableOutput(NS(id, 'diet_file'), width = tbl_width, height = tbl_height)
 }
 
-mod_redcapstatus_ui <- function(id) {
-  textOutput(NS(id, 'status'))
-  }
+
+mod_dietdata_submitter_ui <- function(id) {
+  actionButton(
+    inputId = NS(id, "computrition_to_redcap"),
+    label = "Write completed diet data to REDcap")
+}
 
 mod_loadfile_server <- function(id) {
   
@@ -16,11 +19,15 @@ mod_loadfile_server <- function(id) {
       req(input$upload)
       ext <- clean_diet_file(input$upload$datapath)
       
-      print(ext)
+      print(paste("number of rows in table before:",  nrow(ext)))
       
-      redcap_current <- pull_diet_redcap(unique(as.integer(ext$mrn)))
-      print(redcap_current)
-      output$status <- renderText(nrow(redcap_current)) #JS added "renderText"
+      redcap_current <- pull_diet_redcap(unique(as.integer(ext$mrn))) %>%
+        clean_diet_redcap()
+      
+      ext <- filter(ext, !id %in% redcap_current$id) %>%
+        select(-id)
+      
+      print(paste("number of rows in table after:",  nrow(ext)))
       
       ext
       
@@ -29,12 +36,35 @@ mod_loadfile_server <- function(id) {
       rhandsontable::rhandsontable(raw_file()) %>% 
         rhandsontable::hot_cols(fixedColumnsLeft = 2)
     })
+    
+    
+    observeEvent(input$computrition_to_redcap, {
+      # req(input$diet_file)
+      diet_table <- hot_to_r(input$diet_file)
+      
+      print(head(diet_table))
+      
+      diet_table <- diet_table %>%
+        filter(!is.na(amt_eaten))
+      
+      print(head(diet_table %>% filter(!is.na(amt_eaten))))
+      
+      push_to_redcap(diet_table)
+      
+      # raw_file <- filter(raw_file, !id %in% redcap_current$id) %>%
+      #   select(-id)
+      # 
+      # print(paste("number of rows in table after data entry:",  nrow(raw_file)))
+      
+      session$reload()
+    })
+    
   })
   
 }
 mod_loadfile_demo <- function() {
   
-  ui <- fluidPage(mod_loadfile_ui("x"), mod_showfile_ui("x"))
+  ui <- fluidPage(mod_loadfile_ui("x"), mod_showfile_ui("x"), mod_dietdata_submitter_ui("x"))
   server <- function(input, output, session) {
     mod_loadfile_server("x")
   }
