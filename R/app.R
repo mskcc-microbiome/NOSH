@@ -39,12 +39,16 @@ dietapp <- function(...){
       title = "meal outcomes",
       fluidPage(
         shinyjs::useShinyjs(),
+        mod_mrn_select_ui("patient"), 
+        mod_nutrient_select_ui("patient"), 
+        mod_dashboard_ui("patient")
       )
     )
   )
   server = function(input, output, session) {
     mod_loadfile_server("uploadfile")
     mod_matchFNDDS_server("foodmatch", df = incomplete_data)
+    mod_dashboard_server("patient")
   }
   shinyApp(ui, server)
 }
