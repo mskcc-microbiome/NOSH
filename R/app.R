@@ -52,8 +52,7 @@ dietapp <- function(...){
   shinyApp(ui, server)
 }
 
-
-
+dietapp()
 
 
 
