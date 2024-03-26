@@ -58,7 +58,7 @@ clean_diet_file <- function(filepath){
       ),
       food_nsc = sub("^\\^", "", menu_item_name),
       # portion_consumed = factor(NA_integer_, levels = c(0, 1/4, 1/3, 1/2, 2/3, 3/4, 1))
-      portion_consumed = factor(NA_integer_, levels = c(0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
+      portion_consumed = factor(NA_integer_, levels = c("Missing", 0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
     ) %>%
     # select(mrn, date_intake, meal, menu_item_name, food_nsc, portion_size, portion_consumed, unit, serving_amt_numeric) %>%
     # mutate(food_nsc = factor(food_nsc, levels = sort(unique(c(unit_table$food_nsc)))),
@@ -127,7 +127,7 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
         col_types = cols(eb_mrn = col_integer(), raw_food_serving_unit = col_character()),
         records = ds_different_cert_file1$record_id,
         # forms = c("computrition_data"),
-        fields = c("record_id", "meal_date", "meal", "eb_mrn", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten"),
+        fields = c("record_id", "meal_date", "meal", "eb_mrn", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten", "upload_date", "uploader"),
         # filter_logic = paste0("[eb_mrn]=", mrn_vec),
         # filter_logic = paste0("[record_id]=", ds_different_cert_file1$record_id),
         redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
@@ -212,7 +212,7 @@ push_to_redcap <- function(clean_diet_table) {
   
   # need the following fields
   tbl_names <-  c("record_id", "redcap_event_name", "redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn",
-  "meal_date", "meal", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten")
+  "meal_date", "meal", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten", "upload_date", "uploader")
   
   # final check against redcap to eliminate duplicates
   # redcap_raw <- pull_diet_redcap(12345678) # if no MRNs in redcap
@@ -275,7 +275,9 @@ push_to_redcap <- function(clean_diet_table) {
     ungroup() %>%
     mutate(eb_mrn = NA_integer_, 
            amt_eaten = as.character(amt_eaten),
-           amt_eaten = case_when(amt_eaten == "1" ~ "1.0", TRUE ~ amt_eaten)) %>%
+           amt_eaten = case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten),
+           upload_date = case_when(TRUE ~ as.character(Sys.Date())),
+           uploader = case_when(TRUE ~ Sys.getenv("DIETDATA_REDCAP_USER"))) %>%
     bind_rows(new_pts_to_add)
   
   
@@ -307,7 +309,7 @@ push_to_redcap <- function(clean_diet_table) {
     verbose = T # don't print any details (to minimize printing of PHI)
     )
   
-  print(paste0("the following were written to redcap: \n", formatted_tbl_final))
+  cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
   }
 }
 
