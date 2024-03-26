@@ -36,6 +36,7 @@ mod_loadfile_server <- function(id) {
       print(paste("number of rows in table after:",  nrow(ext)))
       
       ext
+      #clean_diet_file(input$upload$datapath)
       
     })
     

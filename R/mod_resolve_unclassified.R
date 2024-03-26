@@ -9,7 +9,8 @@ get_redcap_unit_table <- function(){
     fndds_portion_weight_g = readr::col_double(),
     unit_table_complete = readr::col_double()
   )
-  REDCapR::redcap_read(verbose = TRUE,batch_size = 500,
+  REDCapR::redcap_read(records = NULL,
+                       verbose = TRUE,batch_size = 1000,
                        col_types=col_types,
                        redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
                        token = Sys.getenv("UNITTABLE_REDCAP_TOKEN"),
@@ -23,7 +24,15 @@ get_meal_entries_lacking_fndds_match <- function(){
     select(raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
     distinct() %>%
     left_join(fndds_paw %>% select(fndds_food_code, fndds_main_food_description) %>% distinct(), by="fndds_food_code")
-
+  
+  # in some cases (311 in the initial dataset) it appears that the unit table contained fndds codes such as 12350210 that are no longer in use.
+  # these will end up with NA's in the fndds_portion_weight_g column and fndds_main_food_description column.  For these, we remove the fndds food code
+  # to prompt the user to use a valid one
+  custom_foods_and_codes <- custom_foods_and_codes %>% 
+    dplyr::mutate(fndds_food_code = ifelse(is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g), NA,fndds_food_code )) %>% 
+    dplyr::mutate(fndds_portion_description = ifelse(is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g), NA, fndds_portion_description )) %>% 
+    dplyr::mutate(raw_to_fndds_unit_matcher = ifelse(is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g), NA, raw_to_fndds_unit_matcher ))
+  
   #do a 2 part join -- first (above) to match the food code with the name (above), then to match up the entries with portions
   #otherwise, we have foods/codes matched but no description due to a missing portion.
   df <- full_join(
@@ -136,6 +145,15 @@ mod_matchFNDDS_submitter_ui <- function(id) {
 
 mod_matchFNDDS_server <- function(id, df) {
   moduleServer(id, function(input, output, session) {
+    this_food_code <- reactive({
+      print(input$fndds_food_code)
+      ifelse(is.null(input$fndds_food_code), NA , input$fndds_food_code)
+    })
+    reference_subset <- reactive({
+      ref <- df %>% filter(fndds_food_code == this_food_code())
+      print(ref)
+      ref
+    })
     output$matchtable <-   DT::renderDataTable(df, selection="single")
     observe({
       # this is the clicked selection
@@ -145,12 +163,12 @@ mod_matchFNDDS_server <- function(id, df) {
       }
       thisentry = df[x, ]
       # this is the reference database (fndds + custom) subsetted to listed criteria
-      reference_subset <- df 
+      #reference_subset <- df 
       # if food code present or entered
-      if (x > 0){
-        if(!is.na(thisentry$fndds_food_code)) reference_subset <- reference_subset %>% filter(fndds_food_code == thisentry$fndds_food_code)
-        if(!is.na(thisentry$fndds_main_food_description)) reference_subset <- reference_subset %>% filter(fndds_main_food_description == thisentry$fndds_main_food_description)
-      }
+      #if (x > 0){
+      #  if(!is.na(thisentry$fndds_food_code)) reference_subset <- reference_subset %>% filter(fndds_food_code == thisentry$fndds_food_code)
+      #  if(!is.na(thisentry$fndds_main_food_description)) reference_subset <- reference_subset %>% filter(fndds_main_food_description == thisentry$fndds_main_food_description)
+      #}
 
       updateSelectizeInput(
         session, "raw_food_id",
@@ -168,10 +186,6 @@ mod_matchFNDDS_server <- function(id, df) {
         session, "fndds_main_food_description",
         choices =unique(df$fndds_main_food_description),
         selected =  thisentry$fndds_main_food_description, server=TRUE)
-      updateSelectizeInput(
-        session, "fndds_portion_description",
-        choices =unique(reference_subset$fndds_portion_description),
-        selected =  thisentry$fndds_portion_description, server=TRUE)
       updateNumericInput(
         session, "fndds_portion_weight_g",
         value =  thisentry$fndds_portion_weight_g)
@@ -194,6 +208,10 @@ mod_matchFNDDS_server <- function(id, df) {
           selected =  newdf[1, "fndds_main_food_description"],
         )
         shinyjs::disable("fndds_main_food_description")
+        updateSelectizeInput(
+          session, "fndds_portion_description",
+          choices =unique(newdf$fndds_portion_description),
+          selected =  newdf$fndds_portion_description, server=TRUE)
       } else{
         shinyjs::enable("fndds_food_code") 
         shinyjs::enable("fndds_main_food_description") 

@@ -22,6 +22,11 @@ dietapp <- function(...){
             column(mod_loadfile_ui('uploadfile'), width = 2),
             column(mod_dietdata_submitter_ui('uploadfile'), width = 2)
             ),
+       #mainPanel(
+      #   width = tbl_width, height = tbl_height,
+       #  fluidRow(
+      #     column(mod_loadfile_ui('uploadfile'), width = 2),
+      #   ),
           mod_showfile_ui('uploadfile')
        )
       )
