@@ -12,18 +12,21 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
-    magrittr,
-    shiny,
-    rhandsontable,
+    checkmate,
     dplyr,
+    DT,
+    ggplot2,
     janitor,
     lubridate,
-    tidyr,
+    magrittr,
     readr,
+    readxl,
+    rhandsontable,
+    REDCapR,
+    shiny,
     shinyjs,
     stringr,
-    DT,
-    readxl,
+    tidyr,
 Depends: 
     R (>= 2.10),
 Suggests: 
