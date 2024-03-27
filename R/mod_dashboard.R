@@ -37,4 +37,4 @@ mod_dashboard_demo <- function() {
   shinyApp(ui, server)
   
 }
-mod_dashboard_demo()
+#mod_dashboard_demo()

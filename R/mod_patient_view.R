@@ -34,4 +34,4 @@ mod_patientdash_demo <- function() {
   shinyApp(ui, server)
   
 }
-mod_patientdash_demo()
+# mod_patientdash_demo()

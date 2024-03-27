@@ -14,7 +14,7 @@ merge_meals_and_units <- function(dev_data, unittable, fndds_summary) {
   #unit table has record_id, raw_food_id, raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher, fndds_portion_description (is this needed?), fndds_portion_weight_g, unit_table_complete (?)
   #fndds_summary has fndds_food_code, fndds_main_food_description, wweia, food breakdown 
   #dev_data has mrn, date_intake, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten (match by raw food serving unit too?)
-  #' TODO: date intake should be a date type, and amt eaten shouold be numeric
+  # date intake should be a date type, and amt eaten shouold be numeric
   
 pt_data_w_unit_table <- dplyr::left_join(
   dev_data %>% 
