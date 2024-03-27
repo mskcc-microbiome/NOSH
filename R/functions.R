@@ -71,27 +71,26 @@ clean_diet_file <- function(filepath){
 
 pull_diet_redcap <- function(mrn_vec = NULL) {
 
-  cert_location <- system.file("cacert.pem", package = "openssl")
-  if (file.exists(cert_location)) {
-    config_options <- list(cainfo = cert_location,
-                           content='record',
-                           action='export',
-                           format='csv',
-                           type='flat',
-                           csvDelimiter='',
-                           rawOrLabel='raw',
-                           rawOrLabelHeaders='raw',
-                           exportCheckboxLabel='false',
-                           exportSurveyFields='false',
-                           exportDataAccessGroups='false',
-                           returnFormat='csv'
-    )
+  
+  config_options <- list(
+    content='record',
+    action='export',
+    format='csv',
+    type='flat',
+    csvDelimiter='',
+    rawOrLabel='raw',
+    rawOrLabelHeaders='raw',
+    exportCheckboxLabel='false',
+    exportSurveyFields='false',
+    exportDataAccessGroups='false',
+    returnFormat='csv'
+  )
+  
+  # filter_statement <- paste0("[eb_mrn] in (", toString(sprintf("'%s'", mrn_vec)), ")")
+  # print(filter_statement)
+  
+  redcap_pull = lapply(mrn_vec, FUN = function(mrn){
     
-    # filter_statement <- paste0("[eb_mrn] in (", toString(sprintf("'%s'", mrn_vec)), ")")
-    # print(filter_statement)
-    
-    redcap_pull = lapply(mrn_vec, FUN = function(mrn){
-      
     ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
       col_types = readr::cols(eb_mrn = readr::col_integer()),
       # records = mrn_vec,
@@ -124,10 +123,10 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
     
     # print(str(ds_different_cert_file2))
     
-    }) %>%
-      dplyr::bind_rows()
+  }) %>%
+    dplyr::bind_rows()
   
-  }
+  
   
   # print(head(redcap_pull))
   
@@ -136,36 +135,33 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
 
 
 pull_redcap_pts <- function() {
-
-  cert_location <- system.file("cacert.pem", package = "openssl")
-  if (file.exists(cert_location)) {
-    config_options <- list(cainfo = cert_location,
-                           content='record',
-                           action='export',
-                           format='csv',
-                           type='flat',
-                           csvDelimiter='',
-                           rawOrLabel='raw',
-                           rawOrLabelHeaders='raw',
-                           exportCheckboxLabel='false',
-                           exportSurveyFields='false',
-                           exportDataAccessGroups='false',
-                           returnFormat='csv'
-    )
-    
-    
-      ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
-        col_types = readr::cols(eb_mrn = readr::col_integer()),
-        # records = mrn_vec,
-        events = c("baseline_arm_1"),
-        fields = c("record_id", "eb_mrn"),
-        # filter_logic = paste0("[eb_mrn]=", mrn),
-        # filter_logic = filter_statement,
-        redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
-        token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-        config_options = config_options
-      )$data
-  }
+  
+  config_options <- list(
+    content='record',
+    action='export',
+    format='csv',
+    type='flat',
+    csvDelimiter='',
+    rawOrLabel='raw',
+    rawOrLabelHeaders='raw',
+    exportCheckboxLabel='false',
+    exportSurveyFields='false',
+    exportDataAccessGroups='false',
+    returnFormat='csv'
+  )
+  
+  
+  ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
+    col_types = readr::cols(eb_mrn = readr::col_integer()),
+    # records = mrn_vec,
+    events = c("baseline_arm_1"),
+    fields = c("record_id", "eb_mrn"),
+    # filter_logic = paste0("[eb_mrn]=", mrn),
+    # filter_logic = filter_statement,
+    redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+    token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+    config_options = config_options
+  )$data
 }
 
 
@@ -263,37 +259,31 @@ push_to_redcap <- function(clean_diet_table) {
            uploader = dplyr::case_when(TRUE ~ Sys.getenv("DIETDATA_REDCAP_USER"))) %>%
     dplyr::bind_rows(new_pts_to_add)
   
-  
-  # print(head(formatted_tbl))
-  
-  cert_location <- system.file("cacert.pem", package = "openssl")
-  if (file.exists(cert_location)) {
-    config_options <- list(cainfo = cert_location,
-                           content='record',
-                           action='export',
-                           format='csv',
-                           type='flat',
-                           csvDelimiter='',
-                           rawOrLabel='raw',
-                           rawOrLabelHeaders='raw',
-                           exportCheckboxLabel='false',
-                           exportSurveyFields='false',
-                           exportDataAccessGroups='false',
-                           returnFormat='csv'
-    )
+  config_options <- list(
+    content='record',
+    action='export',
+    format='csv',
+    type='flat',
+    csvDelimiter='',
+    rawOrLabel='raw',
+    rawOrLabelHeaders='raw',
+    exportCheckboxLabel='false',
+    exportSurveyFields='false',
+    exportDataAccessGroups='false',
+    returnFormat='csv'
+  )
   
   
   redcap_write(
     ds_to_write = formatted_tbl_final,
-  redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
-  token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-  config_options = config_options,
+    redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+    token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+    config_options = config_options,
     overwrite_with_blanks = F, # for now we can keep what is already in there
     verbose = T # don't print any details (to minimize printing of PHI)
-    )
+  )
   
   cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
-  }
 }
 
 
