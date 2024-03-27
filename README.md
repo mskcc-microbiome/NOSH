@@ -1,7 +1,5 @@
 # NOSH
 
-
-
 ## Deployment
 We recommend deploying this app via Posit Connect:
 
@@ -22,7 +20,7 @@ NOSH()
 
 ## Development
 
-You need to have the following environemnt variables defined:
+You need to have the following environemnt variables defined.  We use `.env` files to help with this
 ```
 UNITTABLE_REDCAP_URI=<redcap base url, such as https://redcap.acme.org/api/ >
 UNITTABLE_REDCAP_TOKEN=<your redcap unittable api token>
