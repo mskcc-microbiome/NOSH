@@ -7,6 +7,7 @@ get_redcap_unit_table <- function(){
     raw_to_fndds_unit_matcher = readr::col_double(),
     fndds_portion_description = readr::col_character(),
     fndds_portion_weight_g = readr::col_double(),
+    created_by = readr::col_character(),
     unit_table_complete = readr::col_double()
   )
   REDCapR::redcap_read(records = NULL,
@@ -14,7 +15,8 @@ get_redcap_unit_table <- function(){
                        col_types=col_types,
                        redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
                        token = Sys.getenv("UNITTABLE_REDCAP_TOKEN"),
-  )$data 
+  )$data %>% 
+    dplyr::select(-created_by)
   
 }
 
@@ -66,10 +68,14 @@ get_meal_entries_lacking_fndds_match <- function(){
 }
 
 
-save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g){
-  # TODO: implement actual call to new unites redcap
+save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g, user){
   argg <- c(as.list(environment()))
-  if (FALSE) print(argg) # for debugging
+  if (TRUE) print(argg) # for debugging
+  # user will be empty if not on Rconnect
+  if (is.null(user)){
+    print(paste("manually setting user to ",  Sys.info()["user"]))
+    user= Sys.info()["user"]
+  }
   new_entry <- data.frame(
     "raw_food_id" = raw_food_id,
     "raw_food_serving_unit" = raw_food_serving_unit,
@@ -77,6 +83,7 @@ save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, f
     "raw_to_fndds_unit_matcher"=raw_to_fndds_unit_matcher,
     "fndds_portion_description" = fndds_portion_description,
     "fndds_portion_weight_g" = fndds_portion_weight_g,
+    "created_by" = user,
     "unit_table_complete" = 2)
   old_entry <- custom_food %>% 
     filter(raw_food_id == new_entry$raw_food_id[1]) %>% 
@@ -252,7 +259,10 @@ mod_matchFNDDS_server <- function(id, df) {
     })
     observeEvent(input$fndds_portion_weight_g, {
       if(!is.null(input$fndds_portion_weight_g)){
-        output$calculated_grams <- renderText(input$fndds_portion_weight_g * input$raw_to_fndds_unit_matcher)
+        # calculated grams is portion weight divided by the unit matcher.  Ie, is the
+        # raw is half a cup and the fndds portion is a cup, we need 2 portions to match the fndds portion.
+        # if the 1 cup fndds portion is 40 grams, each half cup serving is 20 grams
+        output$calculated_grams <- renderText(input$fndds_portion_weight_g / input$raw_to_fndds_unit_matcher)
       }
     })
     observeEvent(input$submit_to_redcap, {
@@ -263,9 +273,10 @@ mod_matchFNDDS_server <- function(id, df) {
         fndds_food_code=input$fndds_food_code,
         raw_to_fndds_unit_matcher=input$raw_to_fndds_unit_matcher,
         fndds_portion_description=input$fndds_portion_description, 
-        fndds_portion_weight_g=input$fndds_portion_weight_g)
-      
+        fndds_portion_weight_g=input$fndds_portion_weight_g,
+        user=session$user)
       session$reload()
+      custom_food <<- get_redcap_unit_table()
     })
   })
 }
