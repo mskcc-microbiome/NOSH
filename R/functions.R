@@ -1,17 +1,3 @@
-library(shiny)
-library(rhandsontable)
-#library(ggplot2)
-#library(tidyverse)
-library(tidyr)
-library(dplyr)
-library(stringr)
-library(lubridate)
-library(readxl)
-library(janitor)
-library(REDCapR)
-library(readr)
-
-
 clean_diet_file <- function(filepath){
   computrition_export_raw <- readxl::read_excel(filepath) %>%
     select(where(function(x) any(!is.na(x))))
@@ -31,24 +17,24 @@ clean_diet_file <- function(filepath){
   
   computrition_export_clean <- computrition_export %>% 
     janitor::clean_names() %>%
-    mutate(mrn = as.integer(mrn),
-           date_intake = case_when(
+    dplyr::mutate(mrn = as.integer(mrn),
+           date_intake = dplyr::case_when(
              stringr::str_detect(menu_item_name, "Date: ") ~ lubridate::mdy(menu_item_name), 
              TRUE ~ lubridate::NA_Date_)) %>%
     tidyr::fill(c("meal", "mrn", "date_intake"), .direction = "down") %>%
-    filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} [value|average|total])|(condiments, salt|pepper)|(\\*{8})") &
+    dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} [value|average|total])|(condiments, salt|pepper)|(\\*{8})") &
              !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
              !menu_item_name %in% remove_items
     )
   
   # computrition_export_clean <- filter(computrition_export_clean, !is.na(portion_size)) %>%
   computrition_export_clean <- computrition_export_clean %>%
-    select(menu_item_name, meal, date_intake, mrn:iron_mg) %>%
-    mutate(
+    dplyr::select(menu_item_name, meal, date_intake, mrn:iron_mg) %>%
+    dplyr::mutate(
       splits = stringr::str_split_fixed(portion_size, pattern = ' ', n = 2),
       serving_amt = splits[,1],
       unit = splits[,2],
-      across(c(serving_amt), 
+      dplyr::across(c(serving_amt), 
              function(x) as.numeric(readr::parse_number(x)),
              .names = "{col}_numeric"),
       serving_amt_numeric = case_when(
@@ -64,15 +50,15 @@ clean_diet_file <- function(filepath){
     # mutate(food_nsc = factor(food_nsc, levels = sort(unique(c(unit_table$food_nsc)))),
     #        unit = case_when(is.na(food_nsc) ~ NA_character_, TRUE ~ unit)
     #        )
-    mutate(food_nsc = factor(food_nsc)) %>% #, levels = sort(unique(unit_table$food_nsc)))) %>%
-    select(mrn, date_intake, meal, food_nsc,serving_amt_numeric, unit,  portion_consumed) %>% 
-    rename(
+    dplyr::mutate(food_nsc = factor(food_nsc)) %>% #, levels = sort(unique(unit_table$food_nsc)))) %>%
+    dplyr::select(mrn, date_intake, meal, food_nsc,serving_amt_numeric, unit,  portion_consumed) %>% 
+    dplyr::rename(
       meal_date=date_intake,
       raw_food_id=food_nsc,
       raw_food_serving_unit=unit,
       serving_size=serving_amt_numeric,
       amt_eaten=portion_consumed) %>%
-    mutate(id = paste(mrn, meal_date, meal, raw_food_id, sep = "_"))
+    dplyr::mutate(id = paste(mrn, meal_date, meal, raw_food_id, sep = "_"))
 # left_join(select(unit_table, food_nsc, unit, food_code, description), by = c("food_nsc", "unit")) %>%
   # select(mrn, date_intake, meal, menu_item_name, description, portion_consumed, serving_amt_numeric, unit) %>%
   # mutate(description = factor(description, levels = sort(unique(description))))
@@ -84,8 +70,7 @@ clean_diet_file <- function(filepath){
 
 
 pull_diet_redcap <- function(mrn_vec = NULL) {
-  dotenv::load_dot_env()
-  
+
   cert_location <- system.file("cacert.pem", package = "openssl")
   if (file.exists(cert_location)) {
     config_options <- list(cainfo = cert_location,
@@ -107,8 +92,8 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
     
     redcap_pull = lapply(mrn_vec, FUN = function(mrn){
       
-    ds_different_cert_file1 <- redcap_read_oneshot(
-      col_types = cols(eb_mrn = col_integer()),
+    ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
+      col_types = readr::cols(eb_mrn = readr::col_integer()),
       # records = mrn_vec,
       # forms = c("computrition_data"),
       fields = c("record_id", "eb_mrn"),
@@ -123,8 +108,8 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
     
     
     if(nrow(ds_different_cert_file1) > 0) {
-      ds_different_cert_file2 <- redcap_read_oneshot(
-        col_types = cols(eb_mrn = col_integer(), raw_food_serving_unit = col_character()),
+      ds_different_cert_file2 <- REDCapR::redcap_read_oneshot(
+        col_types = readr::cols(eb_mrn = readr::col_integer(), raw_food_serving_unit = readr::col_character()),
         records = ds_different_cert_file1$record_id,
         # forms = c("computrition_data"),
         fields = c("record_id", "meal_date", "meal", "eb_mrn", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten", "upload_date", "uploader"),
@@ -140,7 +125,7 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
     # print(str(ds_different_cert_file2))
     
     }) %>%
-      bind_rows()
+      dplyr::bind_rows()
   
   }
   
@@ -151,8 +136,7 @@ pull_diet_redcap <- function(mrn_vec = NULL) {
 
 
 pull_redcap_pts <- function() {
-  dotenv::load_dot_env()
-  
+
   cert_location <- system.file("cacert.pem", package = "openssl")
   if (file.exists(cert_location)) {
     config_options <- list(cainfo = cert_location,
@@ -170,8 +154,8 @@ pull_redcap_pts <- function() {
     )
     
     
-      ds_different_cert_file1 <- redcap_read_oneshot(
-        col_types = cols(eb_mrn = col_integer()),
+      ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
+        col_types = readr::cols(eb_mrn = readr::col_integer()),
         # records = mrn_vec,
         events = c("baseline_arm_1"),
         fields = c("record_id", "eb_mrn"),
@@ -192,9 +176,9 @@ pull_redcap_pts <- function() {
 clean_diet_redcap <- function(redcap_pull) {
   if(nrow(redcap_pull) > 0) {
     redcap_pull <- redcap_pull%>%
-      fill(eb_mrn) %>%
-      filter(redcap_repeat_instrument == "computrition_data") %>%
-      mutate(id = paste(eb_mrn, meal_date, meal, raw_food_id, sep = "_"))
+      dplyr::fill(eb_mrn) %>%
+      dplyr::filter(redcap_repeat_instrument == "computrition_data") %>%
+      dplyr::mutate(id = paste(eb_mrn, meal_date, meal, raw_food_id, sep = "_"))
   } else {
     redcap_pull <- data.frame(record_id = numeric(), redcap_event_name = character(), redcap_repeat_instrument = character(), 
                               redcap_repeat_instance = numeric(), eb_mrn = integer(), meal_date = Date(), meal = character(),
@@ -208,8 +192,7 @@ clean_diet_redcap <- function(redcap_pull) {
 }
 
 push_to_redcap <- function(clean_diet_table) {
-  dotenv::load_dot_env()
-  
+
   # need the following fields
   tbl_names <-  c("record_id", "redcap_event_name", "redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn",
   "meal_date", "meal", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten", "upload_date", "uploader")
@@ -221,28 +204,28 @@ push_to_redcap <- function(clean_diet_table) {
   redcap_pull <- clean_diet_redcap(redcap_raw)
   
   redcap_pts <- pull_redcap_pts() %>%
-    mutate(eb_mrn = as.integer(eb_mrn))
+    dplyr::mutate(eb_mrn = as.integer(eb_mrn))
   
   formatted_tbl <- clean_diet_table %>%
-    mutate(
+    dplyr::mutate(
       mrn = as.integer(mrn),
       id = paste(mrn, meal_date, meal, raw_food_id, sep = "_")) %>%
-    filter(!id %in% redcap_pull$id) %>%
-    mutate(redcap_repeat_instrument = "computrition_data", redcap_event_name = "computrition_data_arm_1", eb_mrn = mrn)
+    dplyr::filter(!id %in% redcap_pull$id) %>%
+    dplyr::mutate(redcap_repeat_instrument = "computrition_data", redcap_event_name = "computrition_data_arm_1", eb_mrn = mrn)
   
   # get latest instance number for existing patients
   redcap_dtls <- redcap_pull %>%
-    arrange(desc(redcap_repeat_instance)) %>%
-    distinct(record_id, eb_mrn, .keep_all = T) %>%
-    select(record_id, eb_mrn, redcap_repeat_instance) %>%
-    mutate(redcap_repeat_instance = redcap_repeat_instance + 1, in_redcap = TRUE)
+    dplyr::arrange(desc(redcap_repeat_instance)) %>%
+    dplyr::distinct(record_id, eb_mrn, .keep_all = T) %>%
+    dplyr::select(record_id, eb_mrn, redcap_repeat_instance) %>%
+    dplyr::mutate(redcap_repeat_instance = redcap_repeat_instance + 1, in_redcap = TRUE)
   
   
   if(exists("next_id")) remove(next_id)
   next_id <- redcap_next_free_record_name(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"))
   
   # generate appropriate record_id and repeat_instrument for each unique patient (based one whether they already are in redcap)
-  for(mrn in unique(filter(formatted_tbl, !eb_mrn %in% redcap_dtls$eb_mrn)$eb_mrn)) {
+  for(mrn in unique(dplyr::filter(formatted_tbl, !eb_mrn %in% redcap_dtls$eb_mrn)$eb_mrn)) {
     
     # if patient is not in redcap baseline (so no record ID has been assigned to their MRN) give them the next available record ID
     if(!mrn %in% redcap_pts$eb_mrn) {
@@ -268,17 +251,17 @@ push_to_redcap <- function(clean_diet_table) {
   
   # increment the repeat instance for those patients
   formatted_tbl_final <- formatted_tbl %>%
-    left_join(redcap_dtls, by = "eb_mrn") %>%
-    select(all_of(tbl_names)) %>%
-    group_by(eb_mrn) %>%
-    mutate(redcap_repeat_instance = seq(from = max(redcap_repeat_instance, na.rm = T), to = max(redcap_repeat_instance, na.rm = T) + n()-1)) %>%
-    ungroup() %>%
-    mutate(eb_mrn = NA_integer_, 
+    dplyr::left_join(redcap_dtls, by = "eb_mrn") %>%
+    dplyr::select(dplyr::all_of(tbl_names)) %>%
+    dplyr::group_by(eb_mrn) %>%
+    dplyr::mutate(redcap_repeat_instance = seq(from = max(redcap_repeat_instance, na.rm = T), to = max(redcap_repeat_instance, na.rm = T) + n()-1)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(eb_mrn = NA_integer_, 
            amt_eaten = as.character(amt_eaten),
-           amt_eaten = case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten),
-           upload_date = case_when(TRUE ~ as.character(Sys.Date())),
-           uploader = case_when(TRUE ~ Sys.getenv("DIETDATA_REDCAP_USER"))) %>%
-    bind_rows(new_pts_to_add)
+           amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten),
+           upload_date = dplyr::case_when(TRUE ~ as.character(Sys.Date())),
+           uploader = dplyr::case_when(TRUE ~ Sys.getenv("DIETDATA_REDCAP_USER"))) %>%
+    dplyr::bind_rows(new_pts_to_add)
   
   
   # print(head(formatted_tbl))

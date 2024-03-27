@@ -14,7 +14,7 @@ mod_dashboard_server <- function(id) {
         summarize(daily_total=sum(consumed_value))
     })
     output$summary <- renderPlot({ 
-      ggplot(get_plot_data() , aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + geom_point()
+      ggplot2::ggplot(get_plot_data() , ggplot2::aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + ggplot2::geom_point()
     }
     )
   })

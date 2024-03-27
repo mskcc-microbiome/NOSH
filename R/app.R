@@ -9,6 +9,7 @@ tbl_height = 500
 # dorito (diet observations registered in tables, obviously)
 
 NOSH <- function(...){
+  if (interactive()) dotenv::load_dot_env()
   custom_food <<- get_redcap_unit_table()
   incomplete_data <- get_meal_entries_lacking_fndds_match()
   ui <- navbarPage(
