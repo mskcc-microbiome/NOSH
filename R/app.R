@@ -3,7 +3,7 @@
 #' @name NOSH
 #' @rdname nosh
 #' @export
-#' @import shinydashboard shiny
+#' @import shiny
 #' @return A shiny dashboard for all your beautiful food data
 NOSH <- function(...){
   if (interactive()) dotenv::load_dot_env()
