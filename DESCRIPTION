@@ -1,6 +1,6 @@
 Package: NOSH
 Title: Shiny app for nutritional optimization for science and health
-Version: 0.0.0.9001
+Version: 0.0.1
 Authors@R: c(
     person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut")),
     person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut" )),
