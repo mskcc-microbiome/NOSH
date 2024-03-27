@@ -1,8 +1,10 @@
-library(shiny)
-tbl_width = 1200
-tbl_height = 500
-
-
+#' NOSH Shiny App
+#'
+#' @name NOSH
+#' @rdname nosh
+#' @export
+#' @import shinydashboard shiny
+#' @return A shiny dashboard for all your beautiful food data
 NOSH <- function(...){
   if (interactive()) dotenv::load_dot_env()
   custom_food <<- get_redcap_unit_table()
@@ -46,7 +48,6 @@ NOSH <- function(...){
   )
   server = function(input, output, session) {
     mod_loadfile_server("uploadfile")
-    # mod_loadfile_server("submitdata")
     mod_matchFNDDS_server("foodmatch", df = incomplete_data)
     mod_dashboard_server("patient")
   }
