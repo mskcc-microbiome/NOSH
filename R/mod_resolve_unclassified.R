@@ -70,11 +70,13 @@ get_meal_entries_lacking_fndds_match <- function(){
 
 save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g, user){
   argg <- c(as.list(environment()))
-  if (TRUE) print(argg) # for debugging
+  if (Sys.getenv("NOSH_USER_TYPE") == "DEV") print(argg) # for debugging
   # user will be empty if not on Rconnect
-  if (is.null(user)){
+  if (is.null(user) & Sys.getenv("NOSH_USER_TYPE") == "DEV"){
     print(paste("manually setting user to ",  Sys.info()["user"]))
     user= Sys.info()["user"]
+  } else{
+    stop("NOSH_USER_TYPE is not DEV and session$user is empty. This shouldn't happen, and we cannot properly determine the user")
   }
   new_entry <- data.frame(
     "raw_food_id" = raw_food_id,
@@ -275,8 +277,8 @@ mod_matchFNDDS_server <- function(id, df) {
         fndds_portion_description=input$fndds_portion_description, 
         fndds_portion_weight_g=input$fndds_portion_weight_g,
         user=session$user)
-      session$reload()
       custom_food <<- get_redcap_unit_table()
+      session$reload()
     })
   })
 }
