@@ -43,7 +43,9 @@ NOSH <- function(...){
         shinyjs::useShinyjs(),
         mod_mrn_select_ui("patient"), 
         mod_nutrient_select_ui("patient"), 
-        mod_dashboard_ui("patient")
+        mod_dashboard_ui("patient"),
+        mod_user_ui("patient"),
+        
       )
     )
   )
