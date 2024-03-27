@@ -124,4 +124,4 @@ fndds_summary <- readxl::read_xlsx(names(files)[5], skip = 1, col_types = "text"
 dotenv::load_dot_env()
 unittable <- get_redcap_unit_table()
 
-usethis::use_data(fndds_fab, fndds_inv, fndds_fai, fndds_paw, fndds_summary, dev_data,unittable, internal = TRUE, overwrite = TRUE)
+usethis::use_data(fndds_fab, fndds_inv, fndds_fai, fndds_paw, fndds_summary, dev_data, unittable, internal = TRUE, overwrite = TRUE)
