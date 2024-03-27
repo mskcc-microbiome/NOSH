@@ -6,6 +6,8 @@
 #' @import shiny
 #' @return A shiny dashboard for all your beautiful food data
 NOSH <- function(...){
+  tbl_width <<- 1200
+  tbl_height <<- 500
   if (interactive()) dotenv::load_dot_env()
   custom_food <<- get_redcap_unit_table()
   incomplete_data <- get_meal_entries_lacking_fndds_match()
