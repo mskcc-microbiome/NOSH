@@ -9,7 +9,8 @@ get_redcap_unit_table <- function(){
     fndds_portion_weight_g = readr::col_double(),
     unit_table_complete = readr::col_double()
   )
-  REDCapR::redcap_read(verbose = TRUE,batch_size = 500,
+  REDCapR::redcap_read(records = NULL,
+                       verbose = TRUE,batch_size = 1000,
                        col_types=col_types,
                        redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
                        token = Sys.getenv("UNITTABLE_REDCAP_TOKEN"),
@@ -186,7 +187,7 @@ mod_matchFNDDS_server <- function(id, df) {
       #  if(!is.na(thisentry$fndds_food_code)) reference_subset <- reference_subset %>% filter(fndds_food_code == thisentry$fndds_food_code)
       #  if(!is.na(thisentry$fndds_main_food_description)) reference_subset <- reference_subset %>% filter(fndds_main_food_description == thisentry$fndds_main_food_description)
       #}
-      
+
       updateSelectizeInput(
         session, "raw_food_id",
         choices =unique(df$raw_food_id),
