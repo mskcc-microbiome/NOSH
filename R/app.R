@@ -10,9 +10,10 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   custom_food <<- get_redcap_unit_table()
   incomplete_data <- get_meal_entries_lacking_fndds_match()
   ui <- navbarPage(
-    title = "Diet data processing",
+    title = "Nutrition Optimization for Science and Health",
+    id = "tabs",
     tabPanel(
-      title = "Computrition data entry",
+      title = "Upload Computrition Data",
       fluidPage(
         mainPanel(
           width = tbl_width, height = tbl_height,
@@ -25,7 +26,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       )
     ),
     tabPanel(
-      title = "Menu item matching",
+      title = "Review Unit Table",
       fluidPage(
         shinyjs::useShinyjs(),
         mod_matchFNDDS_foodentry_ui("foodmatch", incomplete_data),
@@ -47,6 +48,11 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
     )
   )
   server = function(input, output, session) {
+    if(Sys.getenv("NOSH_USER_TYPE") %in% c("", "BASIC")){
+      print(paste("NOSH_USER_TYPE is", Sys.getenv("NOSH_USER_TYPE"), "; Disabling data upload and unit table upload"))
+      hideTab(inputId = "tabs", target = "Upload Computrition Data")
+      hideTab(inputId = "tabs", target = "Review Unit Table")
+    }
     mod_loadfile_server("uploadfile")
     mod_matchFNDDS_server("foodmatch", df = incomplete_data)
     mod_dashboard_server("patient")
