@@ -1,7 +1,7 @@
 mod_loadfile_ui <- function(id) {
   fileInput(NS(id, 'upload'), 'Upload your diet data file')
 }
-mod_showfile_ui <- function(id) {
+mod_showfile_ui <- function(id,  tbl_width=1200, tbl_height=500) {
   rhandsontable::rHandsontableOutput(NS(id, 'diet_file'), width = tbl_width, height = tbl_height)
 }
 
