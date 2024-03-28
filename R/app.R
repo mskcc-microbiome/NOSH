@@ -7,8 +7,12 @@
 #' @return A shiny dashboard for all your beautiful food data
 NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   if (interactive()) dotenv::load_dot_env()
-  custom_food <<- get_redcap_unit_table()
-  incomplete_data <- get_meal_entries_lacking_fndds_match()
+  
+  unannotated_food <-   get_meal_entries_lacking_fndds_match(
+    dplyr::bind_rows(
+      get_meal_entries() ,
+      get_redcap_unit_table())
+  )
   ui <- navbarPage(
     title = "Nutrition Optimization for Science and Health",
     id = "tabs",
@@ -29,8 +33,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       title = "Review Unit Table",
       fluidPage(
         shinyjs::useShinyjs(),
-        mod_matchFNDDS_foodentry_ui("foodmatch", incomplete_data),
-        mod_matchFNDDS_portionentry_ui("foodmatch", incomplete_data),
+        mod_matchFNDDS_foodentry_ui("foodmatch", unannotated_food),
+        mod_matchFNDDS_portionentry_ui("foodmatch", unannotated_food),
         mod_matchFNDDS_submitter_ui("foodmatch"),
         mod_matchFNDDS_ui("foodmatch")
       )
@@ -54,7 +58,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       hideTab(inputId = "tabs", target = "Review Unit Table")
     }
     mod_loadfile_server("uploadfile")
-    mod_matchFNDDS_server("foodmatch", df = incomplete_data)
+    mod_matchFNDDS_server("foodmatch", df = unannotated_food)
     mod_dashboard_server("patient")
   }
   shinyApp(ui, server)
