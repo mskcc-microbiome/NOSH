@@ -7,3 +7,6 @@
 *xlsx
 Intake Analysis Report.xlsx
 148_both_batches_UNIT_table_EN_exclu.csv
+.env~
+nutrients.xlxs
+*.DS_Store

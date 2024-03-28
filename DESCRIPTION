@@ -1,6 +1,6 @@
 Package: NOSH
 Title: Shiny app for nutritional optimization for science and health
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: c(
     person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut")),
     person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut" )),
@@ -12,17 +12,23 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
-    magrittr,
-    shiny,
-    rhandsontable,
+    checkmate,
     dplyr,
+    DT,
+    ggplot2,
     janitor,
     lubridate,
-    tidyr,
+    magrittr,
     readr,
+    readxl,
+    rhandsontable,
+    REDCapR,
+    shiny,
     shinyjs,
     stringr,
-    DT,
-    readxl,
+    tidyr,
 Depends: 
     R (>= 2.10),
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
