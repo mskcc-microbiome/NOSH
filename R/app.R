@@ -51,8 +51,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   server = function(input, output, session) {
     if(Sys.getenv("NOSH_USER_TYPE") %in% c("", "BASIC")){
       print(paste("NOSH_USER_TYPE is", Sys.getenv("NOSH_USER_TYPE"), "; Disabling data upload and unit table upload"))
-      #hideTab(inputId = "tabs", target = "Upload Computrition Data")
-      #hideTab(inputId = "tabs", target = "Review Unit Table")
+      hideTab(inputId = "tabs", target = "Upload Computrition Data")
+      hideTab(inputId = "tabs", target = "Review Unit Table")
     }
     mod_loadfile_server("uploadfile")
     mod_matchFNDDS_server("foodmatch", df = incomplete_data)

@@ -11,9 +11,8 @@ mod_download_progress_ui <- function(id){
 }
 
 mod_dietdata_submitter_ui <- function(id) {
-  ns <- NS(id)
   actionButton(
-    outputId = ns("computrition_to_redcap"),
+    inputId = NS(id, "computrition_to_redcap"),
     label = "Write completed diet data to REDcap")
 }
 
@@ -35,7 +34,6 @@ mod_loadfile_server <- function(id) {
       print(paste("number of rows in table after:",  nrow(ext)))
       
       ext
-      #clean_diet_file(input$upload$datapath)
       
     })
     
