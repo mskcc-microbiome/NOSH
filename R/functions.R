@@ -245,6 +245,13 @@ push_to_redcap <- function(clean_diet_table) {
     mutate(redcap_event_name = "baseline_arm_1") %>%
     select(-c(in_redcap, redcap_repeat_instance))
   
+  user_str="unknown"
+  if(Sys.getenv("DIETDATA_REDCAP_USER") != ""){
+    user_str = Sys.getenv("DIETDATA_REDCAP_USER")
+  } else if (Sys.info()[user] != ""){
+    user_str = Sys.info()[user]
+  }
+  
   # increment the repeat instance for those patients
   formatted_tbl_final <- formatted_tbl %>%
     dplyr::left_join(redcap_dtls, by = "eb_mrn") %>%
@@ -256,7 +263,7 @@ push_to_redcap <- function(clean_diet_table) {
            amt_eaten = as.character(amt_eaten),
            amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten),
            upload_date = dplyr::case_when(TRUE ~ as.character(Sys.Date())),
-           uploader = dplyr::case_when(TRUE ~ Sys.getenv("DIETDATA_REDCAP_USER"))) %>%
+           uploader = dplyr::case_when(TRUE ~ user_str)) %>%
     dplyr::bind_rows(new_pts_to_add)
   
   config_options <- list(
