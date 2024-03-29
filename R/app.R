@@ -21,7 +21,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
             column(mod_loadfile_ui('uploadfile'), width = 2),
             column(mod_dietdata_submitter_ui('uploadfile'), width = 2)
             ),
-          mod_showfile_ui('uploadfile', tbl_width=tbl_width, tbl_height=tbl_height)
+          mod_showfile_ui('uploadfile', tbl_width=tbl_width, tbl_height=tbl_height),
+          mod_download_progress_ui('uploadfile')
        )
       )
     ),
@@ -50,8 +51,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   server = function(input, output, session) {
     if(Sys.getenv("NOSH_USER_TYPE") %in% c("", "BASIC")){
       print(paste("NOSH_USER_TYPE is", Sys.getenv("NOSH_USER_TYPE"), "; Disabling data upload and unit table upload"))
-      hideTab(inputId = "tabs", target = "Upload Computrition Data")
-      hideTab(inputId = "tabs", target = "Review Unit Table")
+      #hideTab(inputId = "tabs", target = "Upload Computrition Data")
+      #hideTab(inputId = "tabs", target = "Review Unit Table")
     }
     mod_loadfile_server("uploadfile")
     mod_matchFNDDS_server("foodmatch", df = incomplete_data)
@@ -60,7 +61,6 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   shinyApp(ui, server)
 }
 
-#dietapp()
 
 
 

@@ -12,7 +12,7 @@ mod_download_progress_ui <- function(id){
 
 mod_dietdata_submitter_ui <- function(id) {
   ns <- NS(id)
-  downloadButton(
+  actionButton(
     outputId = ns("computrition_to_redcap"),
     label = "Write completed diet data to REDcap")
 }
@@ -21,7 +21,6 @@ mod_loadfile_server <- function(id) {
   
   moduleServer(id, function(input, output, session) {
     raw_file <- reactive({
-      print(output)
       req(input$upload)
       ext <- clean_diet_file(input$upload$datapath)
       
@@ -94,5 +93,4 @@ mod_loadfile_demo <- function() {
   shinyApp(ui, server)
   
 }
- mod_loadfile_demo()
 
