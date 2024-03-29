@@ -172,7 +172,7 @@ pull_redcap_pts <- function() {
 clean_diet_redcap <- function(redcap_pull) {
   if(nrow(redcap_pull) > 0) {
     redcap_pull <- redcap_pull%>%
-      dplyr::fill(eb_mrn) %>%
+      tidyr::fill(eb_mrn) %>%
       dplyr::filter(redcap_repeat_instrument == "computrition_data") %>%
       dplyr::mutate(id = paste(eb_mrn, meal_date, meal, raw_food_id, sep = "_"))
   } else {

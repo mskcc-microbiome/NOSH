@@ -21,7 +21,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
             column(mod_loadfile_ui('uploadfile'), width = 2),
             column(mod_dietdata_submitter_ui('uploadfile'), width = 2)
             ),
-          mod_showfile_ui('uploadfile', tbl_width=tbl_width, tbl_height=tbl_height)
+          mod_showfile_ui('uploadfile', tbl_width=tbl_width, tbl_height=tbl_height),
+          mod_download_progress_ui('uploadfile')
        )
       )
     ),
@@ -59,8 +60,6 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   }
   shinyApp(ui, server)
 }
-
-
 
 
 
