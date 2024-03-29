@@ -71,5 +71,5 @@ mod_loadfile_demo <- function() {
   shinyApp(ui, server)
   
 }
-mod_loadfile_demo()
+
 
