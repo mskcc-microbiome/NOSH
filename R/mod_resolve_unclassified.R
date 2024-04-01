@@ -20,7 +20,7 @@ get_redcap_unit_table <- function(){
   
 }
 
-get_unclassified_meal_entries <- function(){
+get_meal_entries <- function(){
   col_types = readr::cols(
     .default = readr::col_character(),
     record_id = readr::col_double(),
@@ -38,7 +38,7 @@ get_unclassified_meal_entries <- function(){
   
 }
 
-get_meal_entries_lacking_fndds_match <- function(){
+get_meal_entries_lacking_fndds_match <- function(custom_food){
   custom_foods_and_codes <- custom_food[!complete.cases(custom_food), ] %>%
     mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g))%>%
     select(raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
@@ -63,7 +63,7 @@ get_meal_entries_lacking_fndds_match <- function(){
     distinct() %>%
     filter(if_any(everything(), is.na)) %>%
     mutate(food_code_desc = paste(fndds_food_code, fndds_main_food_description))
-  df
+  df 
   
 }
 
@@ -181,7 +181,7 @@ mod_matchFNDDS_server <- function(id, df) {
       print(ref)
       ref
     })
-    output$matchtable <-   DT::renderDataTable(df, selection="single")
+    output$matchtable <-   DT::renderDataTable(df %>% filter(!is.na(raw_food_id)), selection="single")
     observe({
       # this is the clicked selection
       x <- input$matchtable_rows_selected
@@ -277,26 +277,29 @@ mod_matchFNDDS_server <- function(id, df) {
         fndds_portion_description=input$fndds_portion_description, 
         fndds_portion_weight_g=input$fndds_portion_weight_g,
         user=session$user)
-      custom_food <<- get_redcap_unit_table()
+      unannotated_food <<-   get_meal_entries_lacking_fndds_match(
+        dplyr::bind_rows(get_meal_entries() ,
+                         get_redcap_unit_table())
+      )
       session$reload()
     })
   })
 }
 mod_matchFNDDS_demo <- function() {
-  unit_table_data <- get_redcap_unit_table()
-  custom_food <<- dplyr::bind_rows(get_unclassified_meal_entries() ,
-                                   unit_table_data)
-  incomplete_data <- get_meal_entries_lacking_fndds_match()
+  unannotated_food <-   get_meal_entries_lacking_fndds_match(
+    dplyr::bind_rows(get_meal_entries() ,
+                     get_redcap_unit_table())
+  )
   ui <- fluidPage(
     # make sure this is enable in the ui, not in the script itself!
     shinyjs::useShinyjs(),
-    mod_matchFNDDS_foodentry_ui("x", incomplete_data),
-    mod_matchFNDDS_portionentry_ui("x", incomplete_data),
+    mod_matchFNDDS_foodentry_ui("x", unannotated_food),
+    mod_matchFNDDS_portionentry_ui("x", unannotated_food),
     mod_matchFNDDS_submitter_ui("x"),
     mod_matchFNDDS_ui("x")
   )
   server <- function(input, output, session) {
-    mod_matchFNDDS_server("x", df = incomplete_data)
+    mod_matchFNDDS_server("x", df = unannotated_food)
   }
   shinyApp(ui, server)
   
