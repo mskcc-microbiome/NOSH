@@ -7,6 +7,7 @@ get_redcap_unit_table <- function(){
     raw_to_fndds_unit_matcher = readr::col_double(),
     fndds_portion_description = readr::col_character(),
     fndds_portion_weight_g = readr::col_double(),
+    created_by = readr::col_character(),
     unit_table_complete = readr::col_double()
   )
   REDCapR::redcap_read(records = NULL,
@@ -14,11 +15,30 @@ get_redcap_unit_table <- function(){
                        col_types=col_types,
                        redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
                        token = Sys.getenv("UNITTABLE_REDCAP_TOKEN"),
-  )$data 
+  )$data %>% 
+    dplyr::select(-created_by)
   
 }
 
-get_meal_entries_lacking_fndds_match <- function(){
+get_meal_entries <- function(){
+  col_types = readr::cols(
+    .default = readr::col_character(),
+    record_id = readr::col_double(),
+  )
+  REDCapR::redcap_read(records = NULL,
+                       col_types=col_types,
+                       verbose = TRUE,batch_size = 1000,
+                       redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+                       token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+  )$data  %>%
+    tidyr::fill(record_id) %>% 
+    dplyr::filter(!is.na(raw_food_id)) %>% 
+    dplyr::select(record_id, meal_date, meal, raw_food_id, raw_food_serving_unit) %>%
+    dplyr::distinct()
+  
+}
+
+get_meal_entries_lacking_fndds_match <- function(custom_food){
   custom_foods_and_codes <- custom_food[!complete.cases(custom_food), ] %>%
     mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g))%>%
     select(raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
@@ -43,15 +63,21 @@ get_meal_entries_lacking_fndds_match <- function(){
     distinct() %>%
     filter(if_any(everything(), is.na)) %>%
     mutate(food_code_desc = paste(fndds_food_code, fndds_main_food_description))
-  df
-
+  df 
+  
 }
 
 
-save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g){
-  # TODO: implement actual call to new unites redcap
+save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g, user){
   argg <- c(as.list(environment()))
-  if (FALSE) print(argg) # for debugging
+  if (Sys.getenv("NOSH_USER_TYPE") == "DEV") print(argg) # for debugging
+  # user will be empty if not on Rconnect
+  if (is.null(user) & Sys.getenv("NOSH_USER_TYPE") == "DEV"){
+    print(paste("manually setting user to ",  Sys.info()["user"]))
+    user= Sys.info()["user"]
+  } else{
+    stop("NOSH_USER_TYPE is not DEV and session$user is empty. This shouldn't happen, and we cannot properly determine the user")
+  }
   new_entry <- data.frame(
     "raw_food_id" = raw_food_id,
     "raw_food_serving_unit" = raw_food_serving_unit,
@@ -59,6 +85,7 @@ save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, f
     "raw_to_fndds_unit_matcher"=raw_to_fndds_unit_matcher,
     "fndds_portion_description" = fndds_portion_description,
     "fndds_portion_weight_g" = fndds_portion_weight_g,
+    "created_by" = user,
     "unit_table_complete" = 2)
   old_entry <- custom_food %>% 
     filter(raw_food_id == new_entry$raw_food_id[1]) %>% 
@@ -102,25 +129,25 @@ mod_matchFNDDS_foodentry_ui <- function(id, df) {
     ),
     column(width=2,
            shiny::selectizeInput(NS(id, "food_code_desc"),multiple = FALSE,
-                          choices=NULL,
-                          label = "FNDDS Code and description")
+                                 choices=NULL,
+                                 label = "FNDDS Code and description")
     ),
     # these are select not selectize,as we generally don't want these manually changed.
     column(width=2,
            shiny::selectInput(NS(id, "fndds_food_code"),multiple = FALSE,
-                       choices=NULL,selectize = FALSE,
-                       label = "FNDDS Food Code")
+                              choices=NULL,selectize = FALSE,
+                              label = "FNDDS Food Code")
     ),
     column(width=2,
-    shiny::selectInput(NS(id, "fndds_main_food_description"),multiple = FALSE,
-                       choices=NULL,selectize = FALSE,
-                       label = "FNDDS Description")
+           shiny::selectInput(NS(id, "fndds_main_food_description"),multiple = FALSE,
+                              choices=NULL,selectize = FALSE,
+                              label = "FNDDS Description")
     ),
   )
 }
 mod_matchFNDDS_portionentry_ui <- function(id, df) {
-    fluidRow(
-      column(width=2,
+  fluidRow(
+    column(width=2,
            shiny::numericInput(NS(id, "raw_to_fndds_unit_matcher"),min = 0, max = 1000, value = 0,
                                label = "Food NSC Units")
     ),
@@ -138,9 +165,9 @@ mod_matchFNDDS_portionentry_ui <- function(id, df) {
   )
 }
 mod_matchFNDDS_submitter_ui <- function(id) {
-    actionButton(
-      inputId = NS(id, "submit_to_redcap"),
-      label = "Write unit entry to REDcap")
+  actionButton(
+    inputId = NS(id, "submit_to_redcap"),
+    label = "Write unit entry to REDcap")
 }
 
 mod_matchFNDDS_server <- function(id, df) {
@@ -154,7 +181,7 @@ mod_matchFNDDS_server <- function(id, df) {
       print(ref)
       ref
     })
-    output$matchtable <-   DT::renderDataTable(df, selection="single")
+    output$matchtable <-   DT::renderDataTable(df %>% filter(!is.na(raw_food_id)), selection="single")
     observe({
       # this is the clicked selection
       x <- input$matchtable_rows_selected
@@ -190,7 +217,7 @@ mod_matchFNDDS_server <- function(id, df) {
         session, "fndds_portion_weight_g",
         value =  thisentry$fndds_portion_weight_g)
     })
-
+    
     observeEvent(input$food_code_desc, {
       if(!is.null(input$food_code_desc) & input$food_code_desc != ""){
         newdf <- df[df$food_code_desc == input$food_code_desc, ]
@@ -234,38 +261,48 @@ mod_matchFNDDS_server <- function(id, df) {
     })
     observeEvent(input$fndds_portion_weight_g, {
       if(!is.null(input$fndds_portion_weight_g)){
-        output$calculated_grams <- renderText(input$fndds_portion_weight_g * input$raw_to_fndds_unit_matcher)
+        # calculated grams is portion weight divided by the unit matcher.  Ie, is the
+        # raw is half a cup and the fndds portion is a cup, we need 2 portions to match the fndds portion.
+        # if the 1 cup fndds portion is 40 grams, each half cup serving is 20 grams
+        output$calculated_grams <- renderText(input$fndds_portion_weight_g / input$raw_to_fndds_unit_matcher)
       }
     })
     observeEvent(input$submit_to_redcap, {
-
+      
       save_new_unit_entries_to_redcap(
         raw_food_id=input$raw_food_id, 
         raw_food_serving_unit=input$raw_food_serving_unit,
         fndds_food_code=input$fndds_food_code,
         raw_to_fndds_unit_matcher=input$raw_to_fndds_unit_matcher,
         fndds_portion_description=input$fndds_portion_description, 
-        fndds_portion_weight_g=input$fndds_portion_weight_g)
-
+        fndds_portion_weight_g=input$fndds_portion_weight_g,
+        user=session$user)
+      unannotated_food <<-   get_meal_entries_lacking_fndds_match(
+        dplyr::bind_rows(get_meal_entries() ,
+                         get_redcap_unit_table())
+      )
       session$reload()
     })
   })
 }
 mod_matchFNDDS_demo <- function() {
-  custom_food <<- get_redcap_unit_table()
-  incomplete_data <- get_meal_entries_lacking_fndds_match()
+  unannotated_food <-   get_meal_entries_lacking_fndds_match(
+    dplyr::bind_rows(get_meal_entries() ,
+                     get_redcap_unit_table())
+  )
   ui <- fluidPage(
     # make sure this is enable in the ui, not in the script itself!
     shinyjs::useShinyjs(),
-    mod_matchFNDDS_foodentry_ui("x", incomplete_data),
-    mod_matchFNDDS_portionentry_ui("x", incomplete_data),
+    mod_matchFNDDS_foodentry_ui("x", unannotated_food),
+    mod_matchFNDDS_portionentry_ui("x", unannotated_food),
     mod_matchFNDDS_submitter_ui("x"),
     mod_matchFNDDS_ui("x")
   )
   server <- function(input, output, session) {
-    mod_matchFNDDS_server("x", df = incomplete_data)
+    mod_matchFNDDS_server("x", df = unannotated_food)
   }
   shinyApp(ui, server)
   
 }
-#mod_matchFNDDS_demo()
+#mod_matchFNDDS_demo() 
+

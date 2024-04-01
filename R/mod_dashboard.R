@@ -5,6 +5,7 @@ mod_dashboard_ui <- function(id) {
   plotOutput(NS(id, 'summary'))
 }
 
+
 mod_summary_table_ui <- function(id) {
   # NS: name space (module shiny )
   tableOutput(NS(id, 'summary_table'))
@@ -13,6 +14,8 @@ mod_summary_table_ui <- function(id) {
 mod_meal_histogram_ui <- function(id) {
   plotOutput(NS(id, 'meal_histogram'))
 }
+
+
 
 mod_dashboard_server <- function(id) {
   moduleServer(id, function(input, output, session) {
@@ -26,9 +29,10 @@ mod_dashboard_server <- function(id) {
         summarize(daily_total=sum(consumed_value))
     })
     output$summary <- renderPlot({ 
-      ggplot(get_plot_data() , aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + geom_point()
+      ggplot2::ggplot(get_plot_data() , ggplot2::aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + ggplot2::geom_point()
     }
     )
+
     
     output$summary_table <- renderTable({ 
       tibble(title = 'Number of patients', number = pt_data_full_merge %>% distinct(mrn) %>% nrow)
@@ -41,12 +45,17 @@ mod_dashboard_server <- function(id) {
     }
     )
     
+
+#    output$user <- renderText(paste("Session$user =", session$user, "; Sys.getenv(USER) =", Sys.getenv("USER"),  "; Sys.info()[user] =", Sys.info()["user"],  "; Sys.getenv(LOGNAME) =", Sys.getenv("LOGNAME")) )
+
   })
 }
 
 
 mod_dashboard_demo <- function() {
+
   ui <- fluidPage(mod_nutrient_select_ui("taco"), mod_dashboard_ui("taco"), mod_summary_table_ui("taco"), mod_meal_histogram_ui("taco"))
+
   server <- function(input, output, session) {
     mod_dashboard_server("taco")
   }
@@ -63,7 +72,11 @@ mod_dashboard_demo <- function() {
 
 
 
-mod_dashboard_demo()
+
+
 #pt_data_full_merge %>% summary
 
+
+
+#mod_dashboard_demo()
 

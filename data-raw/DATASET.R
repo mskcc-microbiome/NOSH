@@ -4,7 +4,7 @@ library(magrittr)
 files <- list("foodandbev.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Foods%20and%20Beverages.xlsx",
               "portionsandweights.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Portions%20and%20Weights.xlsx",
               "foodandingredients.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20FNDDS%20Ingredients.xlsx",
-              "nutrients.xlxs"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Ingredient%20Nutrient%20Values.xlsx",
+              "nutrients.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20Ingredient%20Nutrient%20Values.xlsx",
               "foodsummary.xlsx"="https://www.ars.usda.gov/ARSUserFiles/80400530/apps/2019-2020%20FNDDS%20At%20A%20Glance%20-%20FNDDS%20Nutrient%20Values.xlsx"
 )
 for (i in 1:length(files)){
@@ -124,4 +124,4 @@ fndds_summary <- readxl::read_xlsx(names(files)[5], skip = 1, col_types = "text"
 dotenv::load_dot_env()
 unittable <- get_redcap_unit_table()
 
-usethis::use_data(fndds_fab, fndds_inv, fndds_fai, fndds_paw, fndds_summary, dev_data,unittable, internal = TRUE, overwrite = TRUE)
+usethis::use_data(fndds_fab, fndds_inv, fndds_fai, fndds_paw, fndds_summary, dev_data, unittable, internal = TRUE, overwrite = TRUE)

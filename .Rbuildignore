@@ -3,3 +3,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^Intake Analysis Report\.xlsx$
+^\.env$
+^.*.xlsx$
+^.*.csv$
