@@ -246,17 +246,19 @@ push_to_redcap <- function(clean_diet_table) {
     select(-c(in_redcap, redcap_repeat_instance))
   
   user_str="unknown"
-  if(Sys.getenv("DIETDATA_REDCAP_USER") != ""){
-    user_str = Sys.getenv("DIETDATA_REDCAP_USER")
+  # check for Rsconnect username
+  if(session$user != ""){
+    user_str = session$user
   } else if (Sys.info()[user] != ""){
+    # fall back to local username
     user_str = Sys.info()[user]
   }
   
   # increment the repeat instance for those patients
   formatted_tbl_final <- formatted_tbl %>%
     dplyr::left_join(redcap_dtls, by = "eb_mrn") %>%
-    dplyr::mutate(upload_date = dplyr::case_when(TRUE ~ as.character(Sys.Date())),
-                  uploader = dplyr::case_when(TRUE ~ user_str)) %>%
+    dplyr::mutate(upload_date = as.character(Sys.Date()),
+                  uploader =user_str) %>%
     dplyr::select(dplyr::all_of(tbl_names)) %>%
     dplyr::group_by(eb_mrn) %>%
     dplyr::mutate(redcap_repeat_instance = seq(from = max(redcap_repeat_instance, na.rm = T), to = max(redcap_repeat_instance, na.rm = T) + dplyr::n()-1)) %>%
