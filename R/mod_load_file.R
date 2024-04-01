@@ -40,7 +40,7 @@ mod_loadfile_server <- function(id) {
     
     observeEvent(input$computrition_to_redcap, {
       # req(input$diet_file)
-      diet_table <- hot_to_r(input$diet_file)
+      diet_table <- rhandsontable::hot_to_r(input$diet_file)
       
       print(head(diet_table))
       
@@ -71,5 +71,5 @@ mod_loadfile_demo <- function() {
   shinyApp(ui, server)
   
 }
-mod_loadfile_demo()
+
 

@@ -172,7 +172,7 @@ pull_redcap_pts <- function() {
 clean_diet_redcap <- function(redcap_pull) {
   if(nrow(redcap_pull) > 0) {
     redcap_pull <- redcap_pull%>%
-      dplyr::fill(eb_mrn) %>%
+      tidyr::fill(eb_mrn) %>%
       dplyr::filter(redcap_repeat_instrument == "computrition_data") %>%
       dplyr::mutate(id = paste(eb_mrn, meal_date, meal, raw_food_id, sep = "_"))
   } else {
@@ -218,7 +218,7 @@ push_to_redcap <- function(clean_diet_table) {
   
   
   if(exists("next_id")) remove(next_id)
-  next_id <- redcap_next_free_record_name(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"))
+  next_id <- REDCapR::redcap_next_free_record_name(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"))
   
   # generate appropriate record_id and repeat_instrument for each unique patient (based one whether they already are in redcap)
   for(mrn in unique(dplyr::filter(formatted_tbl, !eb_mrn %in% redcap_dtls$eb_mrn)$eb_mrn)) {
@@ -245,18 +245,27 @@ push_to_redcap <- function(clean_diet_table) {
     mutate(redcap_event_name = "baseline_arm_1") %>%
     select(-c(in_redcap, redcap_repeat_instance))
   
+  user_str="unknown"
+  # check for Rsconnect username
+  if(session$user != ""){
+    user_str = session$user
+  } else if (Sys.info()[user] != ""){
+    # fall back to local username
+    user_str = Sys.info()[user]
+  }
+  
   # increment the repeat instance for those patients
   formatted_tbl_final <- formatted_tbl %>%
     dplyr::left_join(redcap_dtls, by = "eb_mrn") %>%
+    dplyr::mutate(upload_date = as.character(Sys.Date()),
+                  uploader =user_str) %>%
     dplyr::select(dplyr::all_of(tbl_names)) %>%
     dplyr::group_by(eb_mrn) %>%
-    dplyr::mutate(redcap_repeat_instance = seq(from = max(redcap_repeat_instance, na.rm = T), to = max(redcap_repeat_instance, na.rm = T) + n()-1)) %>%
+    dplyr::mutate(redcap_repeat_instance = seq(from = max(redcap_repeat_instance, na.rm = T), to = max(redcap_repeat_instance, na.rm = T) + dplyr::n()-1)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(eb_mrn = NA_integer_, 
            amt_eaten = as.character(amt_eaten),
-           amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten),
-           upload_date = dplyr::case_when(TRUE ~ as.character(Sys.Date())),
-           uploader = dplyr::case_when(TRUE ~ Sys.getenv("DIETDATA_REDCAP_USER"))) %>%
+           amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten)) %>%
     dplyr::bind_rows(new_pts_to_add)
   
   config_options <- list(
@@ -274,7 +283,7 @@ push_to_redcap <- function(clean_diet_table) {
   )
   
   
-  redcap_write(
+  REDCapR::redcap_write(
     ds_to_write = formatted_tbl_final,
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
