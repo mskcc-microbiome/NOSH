@@ -96,10 +96,9 @@ fndds_paw <- readxl::read_xlsx(names(files)[2], skip = 1) %>% janitor::clean_nam
 # here is some sample data for experimenting with
 # we have to remove MRNs, and scramble some dates.
 dev_data <- clean_diet_file("Intake Analysis Report.xlsx") %>% 
-  mutate(mrn=as.numeric(as.factor(mrn))) %>%
-  rename(date_intake = meal_date)
-random_dates <- sample(seq(as.Date("1834-01-01"), as.Date("2045-01-01"), by = "day"), length(unique(dev_data$date_intake)), replace = TRUE)
-dev_data$date_intake <- factor(dev_data$date_intake, labels=random_dates)
+  mutate(mrn=as.numeric(as.factor(mrn)))
+random_dates <- sample(seq(as.Date("2020-01-01"), as.Date("2045-01-01"), by = "day"), length(unique(dev_data$meal_date)), replace = TRUE)
+dev_data$meal_date <- factor(dev_data$meal_date, labels=random_dates)
 
 # No longer needed after importing to REDcap
 ## Here is the current unit table:
