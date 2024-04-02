@@ -371,3 +371,21 @@ redcap_delete_event <- function (redcap_uri, token, records_to_delete, arm_of_re
 # (note that this will still leave a blank unassigned record that needs to be manually deleted from redcap)
 # kernel_return <- redcap_delete_event(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"), records_to_delete = c(44), arm_of_records_to_delete = 1L, instrument_name = "patient_information", event_name = "baseline_arm_1", verbose = T)
 
+
+get_meal_entries <- function(){
+  col_types = readr::cols(
+    .default = readr::col_character(),
+    record_id = readr::col_double(),
+  )
+  REDCapR::redcap_read(records = NULL,
+                       col_types=col_types,
+                       verbose = TRUE,batch_size = 1000,
+                       redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+                       token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+  )$data  %>%
+    tidyr::fill(record_id) %>% 
+    dplyr::filter(!is.na(raw_food_id)) %>% 
+    dplyr::select(record_id, mrn_eb, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
+    dplyr::distinct()
+  
+}

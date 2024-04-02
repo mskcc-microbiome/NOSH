@@ -33,7 +33,7 @@ get_meal_entries <- function(){
   )$data  %>%
     tidyr::fill(record_id) %>% 
     dplyr::filter(!is.na(raw_food_id)) %>% 
-    dplyr::select(record_id, meal_date, meal, raw_food_id, raw_food_serving_unit) %>%
+    dplyr::select(record_id, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
     dplyr::distinct()
   
 }
@@ -278,7 +278,7 @@ mod_matchFNDDS_server <- function(id, df) {
         fndds_portion_weight_g=input$fndds_portion_weight_g,
         user=session$user)
       unannotated_food <<-   get_meal_entries_lacking_fndds_match(
-        dplyr::bind_rows(get_meal_entries() ,
+        dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size),
                          get_redcap_unit_table())
       )
       session$reload()
@@ -287,7 +287,7 @@ mod_matchFNDDS_server <- function(id, df) {
 }
 mod_matchFNDDS_demo <- function() {
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
-    dplyr::bind_rows(get_meal_entries() ,
+    dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size,-mrn_eb),
                      get_redcap_unit_table())
   )
   ui <- fluidPage(
