@@ -25,8 +25,8 @@ mod_dashboard_server <- function(id) {
     get_plot_data <- reactive({
       tabulate_pt_nutrition(pt_data_full_merge, mrn=3, nutrient_list=input$nutrients,
                             dt_start="1914-06-21", dt_end="1914-06-21") %>% 
-        group_by(meal, date_intake, nutrient) %>% 
-        summarize(daily_total=sum(consumed_value))
+        dplyr::group_by(meal, date_intake, nutrient) %>% 
+        dplyr::summarize(daily_total=sum(consumed_value))
     })
     output$summary <- renderPlot({ 
       ggplot2::ggplot(get_plot_data() , ggplot2::aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + ggplot2::geom_point()

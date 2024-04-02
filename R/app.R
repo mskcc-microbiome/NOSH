@@ -46,7 +46,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
         mod_mrn_select_ui("patient"), 
         mod_nutrient_select_ui("patient"), 
         mod_dashboard_ui("patient"),
-        mod_user_ui("patient"),
+        #mod_user_ui("patient"),
         
       )
     )

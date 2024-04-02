@@ -68,90 +68,65 @@ clean_diet_file <- function(filepath){
 }
 
 
+#' get_mrn_record_id
+#'. This function is used to check whether a given MRN is in REDcap.  It would be nice to do this
+#' all in one go, but we can't both filter by a non-record-id field (in this case, the MRN)
+#' and also return fields from instruments that lack the field we are filtering by.
+#' In this case, the MRN is in the baseline pt info instrument, but the diet data is in the computrition instrument.  
+#' So, we have to first use this function to fetch the right record ID, then query with that record id
+#' to get the actual meal data
+#' @param mrn 
+#'
+#' @return redcapr response object with fields in data for eb_mrn and record_id
+#' @export
+#'
+#' @examples
+get_mrn_record_id <- function(mrn){
+  REDCapR::redcap_read_oneshot(
+    col_types = readr::cols(eb_mrn = readr::col_integer()),
+    fields = c("record_id", "eb_mrn"),
+    filter_logic = paste0("[eb_mrn]=", mrn),
+    redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
+    token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
+    config_options = redcap_config_options
+  )
+}
 
 pull_diet_redcap <- function(mrn_vec = NULL) {
 
-  
-  config_options <- list(
-    content='record',
-    action='export',
-    format='csv',
-    type='flat',
-    csvDelimiter='',
-    rawOrLabel='raw',
-    rawOrLabelHeaders='raw',
-    exportCheckboxLabel='false',
-    exportSurveyFields='false',
-    exportDataAccessGroups='false',
-    returnFormat='csv'
-  )
-  
-  # filter_statement <- paste0("[eb_mrn] in (", toString(sprintf("'%s'", mrn_vec)), ")")
-  # print(filter_statement)
-  
-  redcap_pull = lapply(mrn_vec, FUN = function(mrn){
-    
-    ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
-      col_types = readr::cols(eb_mrn = readr::col_integer()),
-      # records = mrn_vec,
-      # forms = c("computrition_data"),
-      fields = c("record_id", "eb_mrn"),
-      filter_logic = paste0("[eb_mrn]=", mrn),
-      # filter_logic = filter_statement,
-      redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
-      token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-      config_options = config_options
-    )$data
-    
-    # print(str(ds_different_cert_file1))
-    
-    
-    if(nrow(ds_different_cert_file1) > 0) {
-      ds_different_cert_file2 <- REDCapR::redcap_read_oneshot(
+  pts_diet_data <- lapply(mrn_vec, FUN = function(mrn){
+    this_record_id <- get_mrn_record_id(mrn)
+
+    if (this_record_id$success) {
+       REDCapR::redcap_read_oneshot(
         col_types = readr::cols(eb_mrn = readr::col_integer(), raw_food_serving_unit = readr::col_character()),
-        records = ds_different_cert_file1$record_id,
+        records = this_record_id$data$record_id,
         # forms = c("computrition_data"),
         fields = c("record_id", "meal_date", "meal", "eb_mrn", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten", "upload_date", "uploader"),
         # filter_logic = paste0("[eb_mrn]=", mrn_vec),
         # filter_logic = paste0("[record_id]=", ds_different_cert_file1$record_id),
         redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
         token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-        config_options = config_options
+        config_options = redcap_config_options
       )$data
+    } else{
+      showNotification(paste("MRN",  mrn, "not added part of this study; please enter this patient's baseline info prior to uploading diet data"))
+      data.frame()
     }
     
     
-    # print(str(ds_different_cert_file2))
-    
-  }) %>%
-    dplyr::bind_rows()
+  })
+  if (any(sapply(pts_diet_data, FUN = function(x) nrow(x) > 0 ))){
+    return(pts_diet_data %>% dplyr::bind_rows())
+  } else {
+    return(data.frame())
+  }
   
-  
-  
-  # print(head(redcap_pull))
-  
-  redcap_pull
 }
 
 
 pull_redcap_pts <- function() {
-  
-  config_options <- list(
-    content='record',
-    action='export',
-    format='csv',
-    type='flat',
-    csvDelimiter='',
-    rawOrLabel='raw',
-    rawOrLabelHeaders='raw',
-    exportCheckboxLabel='false',
-    exportSurveyFields='false',
-    exportDataAccessGroups='false',
-    returnFormat='csv'
-  )
-  
-  
-  ds_different_cert_file1 <- REDCapR::redcap_read_oneshot(
+  REDCapR::redcap_read_oneshot(
     col_types = readr::cols(eb_mrn = readr::col_integer()),
     # records = mrn_vec,
     events = c("baseline_arm_1"),
@@ -160,7 +135,7 @@ pull_redcap_pts <- function() {
     # filter_logic = filter_statement,
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-    config_options = config_options
+    config_options = redcap_config_options
   )$data
 }
 
@@ -176,8 +151,9 @@ clean_diet_redcap <- function(redcap_pull) {
       dplyr::filter(redcap_repeat_instrument == "computrition_data") %>%
       dplyr::mutate(id = paste(eb_mrn, meal_date, meal, raw_food_id, sep = "_"))
   } else {
+    # There in no blank date type that would allow creation of an empty dataframe with date type for meal_date
     redcap_pull <- data.frame(record_id = numeric(), redcap_event_name = character(), redcap_repeat_instrument = character(), 
-                              redcap_repeat_instance = numeric(), eb_mrn = integer(), meal_date = Date(), meal = character(),
+                              redcap_repeat_instance = numeric(), eb_mrn = integer(), meal_date = character(), meal = character(),
                               raw_food_id = character(), raw_food_serving_unit = character(), serving_size = integer(), 
                               amt_eaten = numeric(), id = character()
     )
@@ -268,26 +244,14 @@ push_to_redcap <- function(clean_diet_table) {
            amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten)) %>%
     dplyr::bind_rows(new_pts_to_add)
   
-  config_options <- list(
-    content='record',
-    action='export',
-    format='csv',
-    type='flat',
-    csvDelimiter='',
-    rawOrLabel='raw',
-    rawOrLabelHeaders='raw',
-    exportCheckboxLabel='false',
-    exportSurveyFields='false',
-    exportDataAccessGroups='false',
-    returnFormat='csv'
-  )
+
   
   
   REDCapR::redcap_write(
     ds_to_write = formatted_tbl_final,
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-    config_options = config_options,
+    config_options = redcap_config_options,
     overwrite_with_blanks = F, # for now we can keep what is already in there
     verbose = T # don't print any details (to minimize printing of PHI)
   )

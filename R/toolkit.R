@@ -53,7 +53,7 @@ tabulate_pt_nutrition <- function(pt_data_full_merge, mrn, dt_start, dt_end, nut
   return(
     pt_data_full_merge %>% 
     dplyr::filter(mrn == {{ mrn }}) %>% 
-      dplyr::filter(date_intake >= {{ dt_start}} ) %>% 
+      dplyr::filter(date_intake >= {{ dt_start }} ) %>% 
       dplyr::filter(date_intake  <= {{ dt_end }} ) %>%
       dplyr::select(1:15, all_of(nutrient_list)) %>%
       tidyr::pivot_longer(names_to = "nutrient", cols = dplyr::all_of(nutrient_list)) %>% 

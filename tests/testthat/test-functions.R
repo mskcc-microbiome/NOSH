@@ -20,6 +20,8 @@ test_that("parsing computrition works", {
     class = c("tbl_df", "tbl", "data.frame")
   )
   #expect_equal(refdf, clean_diet_file(system.file("extdata", package = "NOSH") ))
-  expect_equal(refdf,
-               clean_diet_file("../../inst/extdata/test_computrition_export.xlsx"))
+  expect_equal(
+    refdf,
+    clean_diet_file(system.file("testdata", "test_computrition_export.xlsx", package="NOSH"))
+  )
 })
