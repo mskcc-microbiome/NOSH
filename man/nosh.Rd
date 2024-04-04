@@ -4,7 +4,7 @@
 \alias{NOSH}
 \title{NOSH Shiny App}
 \usage{
-NOSH(...)
+NOSH(tbl_width = 1200, tbl_height = 500, ...)
 }
 \value{
 A shiny dashboard for all your beautiful food data

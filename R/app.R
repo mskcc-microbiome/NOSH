@@ -7,7 +7,6 @@
 #' @return A shiny dashboard for all your beautiful food data
 NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   if (interactive()) dotenv::load_dot_env()
-  
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
     dplyr::bind_rows(
       get_meal_entries()%>% select(-amt_eaten, -serving_size, -eb_mrn) ,
@@ -40,12 +39,21 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       )
     ),
     tabPanel(
-      title = "meal outcomes",
+      title = "Data Overview",
       fluidPage(
         shinyjs::useShinyjs(),
-        mod_mrn_select_ui("patient"), 
-        mod_nutrient_select_ui("patient"), 
-        mod_dashboard_ui("patient"),
+        mod_nutrient_select_ui("dashboard"),
+        mod_summary_table_ui("dashboard"),
+        mod_meal_histogram_ui("dashboard")
+      )
+    ),
+    tabPanel(
+      title = "Patient Meal Explorer",
+      fluidPage(
+        shinyjs::useShinyjs(),
+        mod_mrn_select_ui("patient"),
+        mod_nutrient_select_ui("patient"),
+        mod_patientdash_ui("patient")
         #mod_user_ui("patient"),
         
       )
@@ -57,9 +65,14 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       hideTab(inputId = "tabs", target = "Upload Computrition Data")
       hideTab(inputId = "tabs", target = "Review Unit Table")
     }
+    # computrition upload
     mod_loadfile_server("uploadfile")
+    # fndds matcher
     mod_matchFNDDS_server("foodmatch", df = unannotated_food)
-    mod_dashboard_server("patient")
+    # data overview
+    mod_dashboard_server("dashboard")
+    # 
+    mod_patientdash_server("patient")
   }
   shinyApp(ui, server)
 }

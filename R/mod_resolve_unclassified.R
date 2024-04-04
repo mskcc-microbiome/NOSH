@@ -20,28 +20,12 @@ get_redcap_unit_table <- function(){
   
 }
 
-get_meal_entries <- function(){
-  col_types = readr::cols(
-    .default = readr::col_character(),
-    record_id = readr::col_double(),
-  )
-  REDCapR::redcap_read(records = NULL,
-                       col_types=col_types,
-                       verbose = TRUE,batch_size = 1000,
-                       redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
-                       token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-  )$data  %>%
-    tidyr::fill(record_id) %>% 
-    dplyr::filter(!is.na(raw_food_id)) %>% 
-    dplyr::select(record_id, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
-    dplyr::distinct()
-  
-}
+
 
 get_meal_entries_lacking_fndds_match <- function(custom_food){
   custom_foods_and_codes <- custom_food[!complete.cases(custom_food), ] %>%
     mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g))%>%
-    select(raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
+    select(record_id, raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
     distinct() %>%
     left_join(fndds_paw %>% select(fndds_food_code, fndds_main_food_description) %>% distinct(), by="fndds_food_code")
   
@@ -68,7 +52,7 @@ get_meal_entries_lacking_fndds_match <- function(custom_food){
 }
 
 
-save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g, user){
+save_new_unit_entries_to_redcap <- function(unannotated_food, raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g, user){
   argg <- c(as.list(environment()))
   if (Sys.getenv("NOSH_USER_TYPE") == "DEV") print(argg) # for debugging
   # user will be empty if not on Rconnect
@@ -87,7 +71,7 @@ save_new_unit_entries_to_redcap <- function(raw_food_id,raw_food_serving_unit, f
     "fndds_portion_weight_g" = fndds_portion_weight_g,
     "created_by" = user,
     "unit_table_complete" = 2)
-  old_entry <- custom_food %>% 
+  old_entry <- unannotated_food %>% 
     filter(raw_food_id == new_entry$raw_food_id[1]) %>% 
     filter(raw_food_serving_unit == new_entry$raw_food_serving_unit[1])
   if (FALSE){
@@ -269,7 +253,7 @@ mod_matchFNDDS_server <- function(id, df) {
     })
     observeEvent(input$submit_to_redcap, {
       
-      save_new_unit_entries_to_redcap(
+      save_new_unit_entries_to_redcap(unannotated_food = df,
         raw_food_id=input$raw_food_id, 
         raw_food_serving_unit=input$raw_food_serving_unit,
         fndds_food_code=input$fndds_food_code,
@@ -277,17 +261,13 @@ mod_matchFNDDS_server <- function(id, df) {
         fndds_portion_description=input$fndds_portion_description, 
         fndds_portion_weight_g=input$fndds_portion_weight_g,
         user=session$user)
-      unannotated_food <<-   get_meal_entries_lacking_fndds_match(
-        dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size),
-                         get_redcap_unit_table())
-      )
       session$reload()
     })
   })
 }
 mod_matchFNDDS_demo <- function() {
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
-    dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size,-mrn_eb),
+    dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size,-eb_mrn),
                      get_redcap_unit_table())
   )
   ui <- fluidPage(

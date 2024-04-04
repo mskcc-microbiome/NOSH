@@ -6,7 +6,7 @@
 \alias{NOSH-package}
 \title{NOSH: Shiny app for nutritional optimization for science and health}
 \description{
-Simplify interactions between nutrition management, clinical data, and FNDDS
+Simplify interactions between nutrition management, clinical data, and FNDDS. NOSH facilitates diet data entry, curation, and redcap transactions.
 }
 \author{
 \strong{Maintainer}: Nick Waters \email{nickp60@gmail.com}
@@ -15,6 +15,8 @@ Authors:
 \itemize{
   \item John Slingerland \email{slingerj@mskcc.org}
   \item Natalie Smith \email{smithn7@mskcc.org}
+  \item Anqi Dai \email{daia1@mskcc.org}
+  \item Mirae Baichoo \email{daia1@mskcc.org}
 }
 
 }
