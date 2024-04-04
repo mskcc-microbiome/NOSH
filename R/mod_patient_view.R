@@ -15,11 +15,11 @@ mod_patientdash_server <- function(id) {
     get_plot_data <- reactive({
       tabulate_pt_nutrition(pt_data_full_merge, mrn=input$mrn, nutrient_list=input$nutrients,
                             dt_start="1114-06-21", dt_end="2914-06-21") %>% 
-        group_by(meal, date_intake, nutrient) %>% 
+        group_by(meal, meal_date, nutrient) %>% 
         summarize(daily_total=sum(consumed_value))
     })
     output$summary <- renderPlot({ 
-      ggplot(get_plot_data() , aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + geom_point()
+      ggplot2::ggplot(get_plot_data() , ggplot2::aes(x=interaction(meal_date, meal), color=nutrient, y=daily_total)) + ggplot2::geom_point()
     }
     )
   })

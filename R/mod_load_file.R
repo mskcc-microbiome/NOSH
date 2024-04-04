@@ -42,12 +42,12 @@ mod_loadfile_server <- function(id) {
       # req(input$diet_file)
       diet_table <- rhandsontable::hot_to_r(input$diet_file)
       if (nrow(req(input$diet_file)) > 0 ){
-        print(head(diet_table))
+        #print(head(diet_table))
         
         diet_table <- diet_table %>%
           filter(!is.na(amt_eaten))
         
-        print(head(diet_table %>% filter(!is.na(amt_eaten))))
+        #print(head(diet_table %>% filter(!is.na(amt_eaten))))
         
         push_to_redcap(diet_table)
         

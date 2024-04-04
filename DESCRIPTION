@@ -4,10 +4,11 @@ Version: 0.0.1
 Authors@R: c(
     person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut")),
     person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut" )),
+    person("Anqi", "Dai", , "daia1@mskcc.org", role = c("aut" )),
+    person("Mirae", "Baichoo", , "daia1@mskcc.org", role = c("aut" )),
     person("Nick", "Waters", , "nickp60@gmail.com", role = c("aut", "cre"))
     )
-Description: Simplify interactions between nutrition management, clinical data, and FNDDS
-License: MIT + file LICENSE
+Description: Simplify interactions between nutrition management, clinical data, and FNDDS.  NOSH facilitates diet data entry, curation, and redcap transactions.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3

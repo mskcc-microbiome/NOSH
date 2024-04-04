@@ -25,11 +25,11 @@ mod_dashboard_server <- function(id) {
     get_plot_data <- reactive({
       tabulate_pt_nutrition(pt_data_full_merge, mrn=3, nutrient_list=input$nutrients,
                             dt_start="1914-06-21", dt_end="3014-06-21") %>% 
-        dplyr::group_by(meal, date_intake, nutrient) %>% 
+        dplyr::group_by(meal, meal_date, nutrient) %>% 
         dplyr::summarize(daily_total=sum(consumed_value))
     })
     output$summary <- renderPlot({ 
-      ggplot2::ggplot(get_plot_data() , ggplot2::aes(x=interaction(date_intake, meal), color=nutrient, y=daily_total)) + ggplot2::geom_point() + ggplot2::theme_bw() +
+      ggplot2::ggplot(get_plot_data() , ggplot2::aes(x=interaction(meal_date, meal), color=nutrient, y=daily_total)) + ggplot2::geom_point() + ggplot2::theme_bw() +
         ggplot2::theme(axis.text.x = ggplot2::element_text(angle=45, hjust=1))
     }
     )
@@ -42,7 +42,7 @@ mod_dashboard_server <- function(id) {
     
     output$meal_histogram <- renderPlot({ 
       
-      ggplot2::ggplot(pt_data_full_merge , ggplot2::aes(x=date_intake)) + ggplot2::geom_bar() + ggplot2::theme_bw() 
+      ggplot2::ggplot(pt_data_full_merge , ggplot2::aes(x=meal_date)) + ggplot2::geom_bar() + ggplot2::theme_bw() 
     }
     )
     

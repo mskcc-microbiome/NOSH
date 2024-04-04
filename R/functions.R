@@ -14,14 +14,22 @@ clean_diet_file <- function(filepath){
   names(computrition_export) <- new_names
   
   remove_items <- c("Name", "MRN", "Room", "Menu Item Name", "Acuity", "Current Menu", "Current Diet Order", "TVR Order", "PLEASE RUSH ORDER", "Parent/Guest Tray To Follow")
+  # SuppressWarnings for mrn conversion because it will always warn and the current behavior
+  # of forcing non-ints to NAs is intentional.
+  # the case_when is similar
   
   computrition_export_clean <- computrition_export %>% 
     janitor::clean_names() %>%
-    dplyr::mutate(mrn = as.integer(mrn),
-           date_intake = dplyr::case_when(
-             stringr::str_detect(menu_item_name, "Date: ") ~ lubridate::mdy(menu_item_name), 
-             TRUE ~ lubridate::NA_Date_)) %>%
-    tidyr::fill(c("meal", "mrn", "date_intake"), .direction = "down") %>%
+    dplyr::mutate(
+      mrn = suppressWarnings(as.integer(mrn)),
+      meal_date = suppressWarnings(
+        dplyr::case_when(
+          stringr::str_detect(menu_item_name, "Date: ") ~ lubridate::mdy(menu_item_name), 
+          TRUE ~ lubridate::NA_Date_
+        )
+      )
+    )%>%
+    tidyr::fill(c("meal", "mrn", "meal_date"), .direction = "down") %>%
     dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} [value|average|total])|(condiments, salt|pepper)|(\\*{8})") &
              !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
              !menu_item_name %in% remove_items
@@ -29,11 +37,10 @@ clean_diet_file <- function(filepath){
   
   # computrition_export_clean <- filter(computrition_export_clean, !is.na(portion_size)) %>%
   computrition_export_clean <- computrition_export_clean %>%
-    dplyr::select(menu_item_name, meal, date_intake, mrn:iron_mg) %>%
+    dplyr::select(menu_item_name, meal, meal_date, mrn:iron_mg) %>%
     dplyr::mutate(
-      splits = stringr::str_split_fixed(portion_size, pattern = ' ', n = 2),
-      serving_amt = splits[,1],
-      unit = splits[,2],
+      serving_amt =  gsub("(.*?) (.*)", "\\1", portion_size),
+      raw_food_serving_unit =  gsub("(.*?) (.*)", "\\2", portion_size),
       dplyr::across(c(serving_amt), 
              function(x) as.numeric(readr::parse_number(x)),
              .names = "{col}_numeric"),
@@ -42,27 +49,16 @@ clean_diet_file <- function(filepath){
         stringr::str_detect(serving_amt, "1/4") ~ 0.25,
         TRUE ~ serving_amt_numeric
       ),
-      food_nsc = sub("^\\^", "", menu_item_name),
-      # portion_consumed = factor(NA_integer_, levels = c(0, 1/4, 1/3, 1/2, 2/3, 3/4, 1))
-      portion_consumed = factor(NA_integer_, levels = c("Missing", 0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
+      raw_food_id = sub("^\\^", "", menu_item_name),
+      amt_eaten = factor(NA_integer_, levels = c("Missing", 0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
     ) %>%
-    # select(mrn, date_intake, meal, menu_item_name, food_nsc, portion_size, portion_consumed, unit, serving_amt_numeric) %>%
-    # mutate(food_nsc = factor(food_nsc, levels = sort(unique(c(unit_table$food_nsc)))),
-    #        unit = case_when(is.na(food_nsc) ~ NA_character_, TRUE ~ unit)
-    #        )
-    dplyr::mutate(food_nsc = factor(food_nsc)) %>% #, levels = sort(unique(unit_table$food_nsc)))) %>%
-    dplyr::select(mrn, date_intake, meal, food_nsc,serving_amt_numeric, unit,  portion_consumed) %>% 
+    dplyr::mutate(raw_food_id = factor(raw_food_id)) %>% #, levels = sort(unique(unit_table$raw_food_id)))) %>%
+    dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit,  
+                  amt_eaten) %>% 
     dplyr::rename(
-      meal_date=date_intake,
-      raw_food_id=food_nsc,
-      raw_food_serving_unit=unit,
-      serving_size=serving_amt_numeric,
-      amt_eaten=portion_consumed) %>%
+      serving_size=serving_amt_numeric) %>%
     dplyr::mutate(id = paste(mrn, meal_date, meal, raw_food_id, sep = "_"))
-# left_join(select(unit_table, food_nsc, unit, food_code, description), by = c("food_nsc", "unit")) %>%
-  # select(mrn, date_intake, meal, menu_item_name, description, portion_consumed, serving_amt_numeric, unit) %>%
-  # mutate(description = factor(description, levels = sort(unique(description))))
-  
+
   
   return(computrition_export_clean)
 }
@@ -81,6 +77,9 @@ clean_diet_file <- function(filepath){
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' get_mrn_record_id(12345)
+#'}
 get_mrn_record_id <- function(mrn){
   REDCapR::redcap_read_oneshot(
     col_types = readr::cols(eb_mrn = readr::col_integer()),
@@ -225,9 +224,9 @@ push_to_redcap <- function(clean_diet_table) {
   # check for Rsconnect username
   if(session$user != ""){
     user_str = session$user
-  } else if (Sys.info()[user] != ""){
+  } else if (Sys.info()['user'] != ""){
     # fall back to local username
-    user_str = Sys.info()[user]
+    user_str = Sys.info()['user']
   }
   
   # increment the repeat instance for those patients
@@ -383,9 +382,9 @@ get_meal_entries <- function(){
                        redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
                        token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
   )$data  %>%
-    tidyr::fill(record_id) %>% 
+    tidyr::fill(record_id, eb_mrn) %>% 
     dplyr::filter(!is.na(raw_food_id)) %>% 
-    dplyr::select(record_id, mrn_eb, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
+    dplyr::select(record_id, eb_mrn, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
     dplyr::distinct()
   
 }
