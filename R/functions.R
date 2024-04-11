@@ -1,10 +1,11 @@
+
 clean_diet_file <- function(filepath){
-  computrition_export_raw <- readxl::read_excel(filepath) %>%
-    select(where(function(x) any(!is.na(x))))
-  
+  computrition_export_raw <- suppressMessages(readxl::read_excel(filepath)) %>%
+      janitor::clean_names() %>% 
+      select(where(function(x) any(!is.na(x))))
   computrition_export <- computrition_export_raw
   
-  new_names <- computrition_export[stringr::str_detect(computrition_export$Name, "Menu Item"),] %>%
+  new_names <- computrition_export[stringr::str_detect(computrition_export$name, "Menu Item"),] %>%
     slice(1) %>%
     as.character() %>%
     stringr::str_replace_all("\n|\r", "") %>% as.vector()
@@ -28,16 +29,16 @@ clean_diet_file <- function(filepath){
           TRUE ~ lubridate::NA_Date_
         )
       )
-    )%>%
+    ) %>%
     tidyr::fill(c("meal", "mrn", "meal_date"), .direction = "down") %>%
     dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} [value|average|total])|(condiments, salt|pepper)|(\\*{8})") &
              !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
              !menu_item_name %in% remove_items
     )
-  
-  # computrition_export_clean <- filter(computrition_export_clean, !is.na(portion_size)) %>%
+  if (! "portion_consumed" %in% colnames(computrition_export_clean)){
+    computrition_export_clean$portion_consumed <- NA
+  }
   computrition_export_clean <- computrition_export_clean %>%
-    dplyr::select(menu_item_name, meal, meal_date, mrn:iron_mg) %>%
     dplyr::mutate(
       serving_amt =  gsub("(.*?) (.*)", "\\1", portion_size),
       raw_food_serving_unit =  gsub("(.*?) (.*)", "\\2", portion_size),
@@ -53,9 +54,10 @@ clean_diet_file <- function(filepath){
       amt_eaten = factor(NA_integer_, levels = c("Missing", 0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
     ) %>%
     dplyr::mutate(raw_food_id = factor(raw_food_id)) %>% #, levels = sort(unique(unit_table$raw_food_id)))) %>%
-    dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit,  
+    dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit,  portion_consumed,
                   amt_eaten) %>% 
     dplyr::rename(
+      computrition_portion_consumed = portion_consumed,
       serving_size=serving_amt_numeric) %>%
     dplyr::mutate(id = paste(mrn, meal_date, meal, raw_food_id, sep = "_"))
 

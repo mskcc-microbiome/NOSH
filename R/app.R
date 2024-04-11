@@ -21,6 +21,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
         mainPanel(
           width = tbl_width, height = tbl_height,
           fluidRow(
+            mod_instructions_ui("uploadfile"),
             column(mod_loadfile_ui('uploadfile'), width = 2),
             column(mod_dietdata_submitter_ui('uploadfile'), width = 2)
             ),
@@ -32,6 +33,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       title = "Review Unit Table",
       fluidPage(
         shinyjs::useShinyjs(),
+        mod_instructions_ui("foodmatch"),
         mod_matchFNDDS_foodentry_ui("foodmatch", unannotated_food),
         mod_matchFNDDS_portionentry_ui("foodmatch", unannotated_food),
         mod_matchFNDDS_submitter_ui("foodmatch"),

@@ -104,12 +104,12 @@ mod_matchFNDDS_foodentry_ui <- function(id, df) {
     column(width=2,
            shiny::selectizeInput(NS(id, "raw_food_id"),
                                  choices=NULL,multiple = FALSE,
-                                 label = "raw_food_id",   options = list(create = TRUE)),
+                                 label = "Raw Food ID",   options = list(create = TRUE)),
     ),
     column(width=2,
            shiny::selectizeInput(NS(id, "raw_food_serving_unit"),
                                  choices=NULL,multiple = FALSE,
-                                 label = "raw_food_serving_unit",   options = list(create = TRUE)),
+                                 label = "Raw Food Serving Unit",   options = list(create = TRUE)),
     ),
     column(width=2,
            shiny::selectizeInput(NS(id, "food_code_desc"),multiple = FALSE,
@@ -133,14 +133,14 @@ mod_matchFNDDS_portionentry_ui <- function(id, df) {
   fluidRow(
     column(width=2,
            shiny::numericInput(NS(id, "raw_to_fndds_unit_matcher"),min = 0, max = 1000, value = 0,
-                               label = "Food NSC Units")
+                               label = "Raw Food Unit Conversion")
     ),
     column(1, "equals"),
     column(width=2,
            
            shiny::selectizeInput(NS(id, "fndds_portion_description"),multiple = FALSE,
                                  choices=NULL,
-                                 label = "Portion Size",   options = list(create = TRUE))),
+                                 label = "FNDDS Portion Size",   options = list(create = TRUE))),
     column(width=2,
            shiny::numericInput(NS(id, "fndds_portion_weight_g"),min = 0, max = 1000, value = 0,
                                label = "portion weight (g)")),
@@ -263,6 +263,10 @@ mod_matchFNDDS_server <- function(id, df) {
         user=session$user)
       session$reload()
     })
+    output$instructions <- renderUI({
+      includeMarkdown(system.file("md", 'food_matcher_instructions.md', package="NOSH"))
+    })
+    
   })
 }
 mod_matchFNDDS_demo <- function() {
@@ -273,6 +277,7 @@ mod_matchFNDDS_demo <- function() {
   ui <- fluidPage(
     # make sure this is enable in the ui, not in the script itself!
     shinyjs::useShinyjs(),
+    mod_instructions_ui("x"),
     mod_matchFNDDS_foodentry_ui("x", unannotated_food),
     mod_matchFNDDS_portionentry_ui("x", unannotated_food),
     mod_matchFNDDS_submitter_ui("x"),
