@@ -1,3 +1,6 @@
+mod_instructions_ui <- function(id) {
+  uiOutput(NS(id, 'instructions'),)
+}
 mod_loadfile_ui <- function(id) {
   fileInput(NS(id, 'upload'), 'Upload your diet data file')
 }
@@ -17,6 +20,10 @@ mod_loadfile_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     raw_file <- reactive({
       req(input$upload)
+      if (is.na(readxl:::format_from_signature(input$upload$datapath))){
+        showNotification("Computrition exports malformed  Excel files; this can be 'repaired' by opening this file in Excel first, and re-saving.")
+      }
+      req(!is.na(readxl:::format_from_signature(input$upload$datapath)))
       ext <- clean_diet_file(input$upload$datapath)
       
       print(paste("number of rows in uploaded table:",  nrow(ext)))
@@ -28,7 +35,9 @@ mod_loadfile_server <- function(id) {
       print(paste("number of rows after filtering against data in redcap:",  nrow(ext)))
       ext <- dplyr::filter(ext, mrn %in% redcap_current$eb_mrn)
       print(paste("number of rows after removing mrns missing from redcap",  nrow(ext)))
-      
+      if(nrow(ext) == 0){
+        showNotification("No enterable data found; this is likely due to this patient not being registered in REDCap; please register this patients first.")
+      }
       ext
       
     })
@@ -37,7 +46,10 @@ mod_loadfile_server <- function(id) {
         rhandsontable::hot_cols(fixedColumnsLeft = 2)
     })
     
-    
+    output$instructions <- renderUI({
+      includeMarkdown(system.file("md", 'upload_instructions.md', package="NOSH"))
+#      HTML(markdown::markdownToHTML(system.file("md", 'upload_instructions.md', package="NOSH")))
+    })
     observeEvent(input$computrition_to_redcap, {
       # req(input$diet_file)
       diet_table <- rhandsontable::hot_to_r(input$diet_file)
@@ -67,7 +79,12 @@ mod_loadfile_server <- function(id) {
 }
 mod_loadfile_demo <- function() {
   
-  ui <- fluidPage(mod_loadfile_ui("x"), mod_showfile_ui("x"), mod_dietdata_submitter_ui("x"))
+  ui <- fluidPage(
+    mod_instructions_ui("x"),
+    mod_loadfile_ui("x"),
+    mod_showfile_ui("x"),
+    mod_dietdata_submitter_ui("x")
+    )
   server <- function(input, output, session) {
     mod_loadfile_server("x")
   }
