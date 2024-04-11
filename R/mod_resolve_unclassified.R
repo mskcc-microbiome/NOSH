@@ -82,7 +82,7 @@ save_new_unit_entries_to_redcap <- function(unannotated_food, raw_food_id,raw_fo
     print("Warning: fix unit table in redcap manually; multiple entries found with the same raw food id and raw food serving unit!")
   } else if (nrow(old_entry) == 0){
     print("adding entirely new food entry")
-    new_entry$record_id = max(custom_food$record_id) + 1
+    new_entry$record_id = max(unannotated_food$record_id) + 1
   } else{
     new_entry$record_id = old_entry$record_id
   }
