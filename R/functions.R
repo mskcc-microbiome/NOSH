@@ -149,8 +149,14 @@ clean_diet_redcap <- function(redcap_pull) {
   if(nrow(redcap_pull) > 0) {
     redcap_pull <- redcap_pull%>%
       tidyr::fill(eb_mrn) %>%
-      dplyr::filter(redcap_repeat_instrument == "computrition_data") %>%
       dplyr::mutate(id = paste(eb_mrn, meal_date, meal, raw_food_id, sep = "_"))
+    if ("computrition_data" %in% redcap_pull$redcap_repeat_instrument) {
+      # if there is computrition data, select it
+      redcap_pull <- redcap_pull %>% dplyr::filter(redcap_repeat_instrument == "computrition_data") 
+    } else{
+      # otherwise, return a single row 
+      redcap_pull <- redcap_pull %>% dplyr::slice(1)
+    }
   } else {
     # There in no blank date type that would allow creation of an empty dataframe with date type for meal_date
     redcap_pull <- data.frame(record_id = numeric(), redcap_event_name = character(), redcap_repeat_instrument = character(), 
@@ -158,7 +164,6 @@ clean_diet_redcap <- function(redcap_pull) {
                               raw_food_id = character(), raw_food_serving_unit = character(), serving_size = integer(), 
                               amt_eaten = numeric(), id = character()
     )
-    
   }
   
   redcap_pull
@@ -224,7 +229,7 @@ push_to_redcap <- function(clean_diet_table) {
   
   user_str="unknown"
   # check for Rsconnect username
-  if(session$user != ""){
+  if(exists("session")){
     user_str = session$user
   } else if (Sys.info()['user'] != ""){
     # fall back to local username
@@ -237,13 +242,11 @@ push_to_redcap <- function(clean_diet_table) {
     dplyr::mutate(upload_date = as.character(Sys.Date()),
                   uploader =user_str) %>%
     dplyr::select(dplyr::all_of(tbl_names)) %>%
-    dplyr::group_by(eb_mrn) %>%
-    dplyr::mutate(redcap_repeat_instance = seq(from = max(redcap_repeat_instance, na.rm = T), to = max(redcap_repeat_instance, na.rm = T) + dplyr::n()-1)) %>%
-    dplyr::ungroup() %>%
+    populate_redcap_repeat_instance() %>% 
     dplyr::mutate(eb_mrn = NA_integer_, 
            amt_eaten = as.character(amt_eaten),
            amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten)) %>%
-    dplyr::bind_rows(new_pts_to_add)
+    dplyr::bind_rows(new_pts_to_add) 
   
 
   
@@ -260,9 +263,26 @@ push_to_redcap <- function(clean_diet_table) {
   cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
 }
 
+populate_redcap_repeat_instance <- function(df){
+  #. this is a bit tricky but we need to deal with diet data containing
+  # 1) multiple patients and 
+  # 2) possible pre-existing diet data where a repeat instance has already been assigned
+  for (col in c("redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn")){
+    if(!col %in% colnames(df)) stop(paste(col, "must be a column in this dataframe"))
+  }
+  df %>%
+    dplyr::filter(redcap_repeat_instrument == "computrition_data") %>% # should be redundant
+    dplyr::group_by(eb_mrn) %>%
+    dplyr::mutate(latest_computrition_repeat_instance = ifelse(all(is.na(redcap_repeat_instance)), 0, max(redcap_repeat_instance, na.rm = T))) %>%
+    dplyr::group_by(eb_mrn, is.na(redcap_repeat_instance)) %>% #split up thos with and those without repeat instances
+    dplyr::mutate(redcap_repeat_instance = ifelse(
+      !is.na(redcap_repeat_instance), 
+      redcap_repeat_instance,
+      dplyr::row_number() + latest_computrition_repeat_instance)) %>% 
+    dplyr::ungroup() %>%
+    select(-latest_computrition_repeat_instance, -`is.na(redcap_repeat_instance)`)
 
-
-
+}
 
 
 
