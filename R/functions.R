@@ -256,11 +256,11 @@ push_to_redcap <- function(clean_diet_table) {
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
     config_options = redcap_config_options,
-    overwrite_with_blanks = F, # for now we can keep what is already in there
-    verbose = T # don't print any details (to minimize printing of PHI)
+    overwrite_with_blanks = FALSE, # for now we can keep what is already in there
+    verbose = FALSE # don't print any details (to minimize printing of PHI)
   )
   
-  cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
+  #cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
 }
 
 populate_redcap_repeat_instance <- function(df){

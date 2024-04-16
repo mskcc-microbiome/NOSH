@@ -51,13 +51,13 @@ mod_loadfile_server <- function(id) {
 #      HTML(markdown::markdownToHTML(system.file("md", 'upload_instructions.md', package="NOSH")))
     })
     observeEvent(input$computrition_to_redcap, {
-      # req(input$diet_file)
+      req(input$diet_file)
       diet_table <- rhandsontable::hot_to_r(input$diet_file)
-      if (nrow(req(input$diet_file)) > 0 ){
+      diet_table <- diet_table %>%
+        filter(!is.na(amt_eaten))
+      if (nrow(diet_table) > 0 ){
         #print(head(diet_table))
         
-        diet_table <- diet_table %>%
-          filter(!is.na(amt_eaten))
         
         #print(head(diet_table %>% filter(!is.na(amt_eaten))))
         
