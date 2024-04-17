@@ -246,7 +246,7 @@ push_to_redcap <- function(clean_diet_table, session) {
     select(-eb_mrn)
 #  print(formatted_tbl_final)
   if(any(formatted_tbl_final$amt_eaten > 1)) stop("Error: amt_eaten in wrong format")
-  if(any(formatted_tbl_final$redcap_repeat_instance <= max(redcap_dtls$redcap_repeat_instance))) stop("Error: redcap_repeat_instance incremented incorrectly")
+  if(any(formatted_tbl_final$redcap_repeat_instance <= max(redcap_dtls$redcap_repeat_instance, na.rm = TRUE))) stop("Error: redcap_repeat_instance incremented incorrectly")
   
 
   
