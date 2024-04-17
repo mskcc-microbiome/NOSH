@@ -10,7 +10,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   init_data <- get_meal_entries()
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
     dplyr::bind_rows(
-      init_data%>% select(-amt_eaten, -serving_size, -mrn) ,
+      init_data$df %>% select(-amt_eaten, -serving_size, -mrn) ,
       get_redcap_unit_table())
   )
   ui <- navbarPage(
@@ -71,7 +71,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       hideTab(inputId = "tabs", target = "Upload Computrition Data")
       hideTab(inputId = "tabs", target = "Review Unit Table")
     }
-    rv <- reactiveValues(current_redcap_diet_data=init_data )
+    rv <- reactiveValues(current_redcap_diet_data=init_data$df, 
+                         patients=init_data$patients)
     # computrition upload
     mod_loadfile_server("uploadfile", rv)
     # fndds matcher

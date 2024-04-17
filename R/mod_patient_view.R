@@ -55,7 +55,9 @@ mod_patientdash_demo <- function() {
     mod_patientdash_ui("patient")
   )
   server <- function(input, output, session) {
-    rv <- reactiveValues(current_redcap_diet_data=get_meal_entries() )
+    init_data <- get_meal_entries()
+    rv <- reactiveValues(current_redcap_diet_data=init_data$df,
+                         patients=init_data$patients)
     mod_patientdash_server("patient", rv)
   }
   shinyApp(ui, server)

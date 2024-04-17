@@ -73,7 +73,9 @@ mod_dashboard_demo <- function() {
   )
 
   server <- function(input, output, session) {
-    rv <- reactiveValues(current_redcap_diet_data=get_meal_entries() )
+    init_data <- get_meal_entries()
+    rv <- reactiveValues(current_redcap_diet_data=init_data$df,
+                         patients=init_data$patients)
     mod_dashboard_server("taco", rv)
   }
   shinyApp(ui, server)

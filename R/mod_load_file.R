@@ -16,6 +16,9 @@ mod_dietdata_submitter_ui <- function(id) {
 }
 
 mod_loadfile_server <- function(id, rv) {
+  # debugging
+  # input <- list("upload"=list("datapath"="~/Desktop/NOSH_test_1.xlsx"))
+  # rv    <- list("current_redcap_diet_data"= get_meal_entries())
   moduleServer(id, function(input, output, session) {
     raw_file <- reactive({
       req(input$upload)
@@ -30,7 +33,7 @@ mod_loadfile_server <- function(id, rv) {
       # redcap_current <- pull_diet_redcap(unique(as.integer(ext$mrn))) %>%
       #   clean_diet_redcap()
       print(paste("number of rows after filtering against data in redcap:",  nrow(ext)))
-      ext <- dplyr::filter(ext, mrn %in% rv$current_redcap_diet_data$mrn)
+      ext <- dplyr::filter(ext, mrn %in% rv$patients)
       print(paste("number of rows after removing mrns missing from redcap",  nrow(ext)))
       if(nrow(ext) == 0){
         showNotification("No enterable data found; this is likely due to this patient not being registered in REDCap; please register this patients first.")
@@ -70,7 +73,7 @@ mod_loadfile_server <- function(id, rv) {
         #   select(-id)
         # 
         # print(paste("number of rows in table after data entry:",  nrow(raw_file)))
-        rv$current_redcap_diet_data <- get_meal_entries()
+        rv$current_redcap_diet_data <- get_meal_entries()$df
         #session$reload()
       } else{
         showNotification("No data to write; please upload and annotate some diet data first")
@@ -89,7 +92,9 @@ mod_loadfile_demo <- function() {
     mod_dietdata_submitter_ui("x")
     )
   server <- function(input, output, session) {
-    rv <- reactiveValues(current_redcap_diet_data=get_meal_entries() )
+    init_data <- get_meal_entries()
+    rv <- reactiveValues(current_redcap_diet_data=init_data$df,
+                         patients=init_data$patients)
     mod_loadfile_server("x", rv)
   }
   shinyApp(ui, server)

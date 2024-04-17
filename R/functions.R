@@ -417,17 +417,26 @@ get_meal_entries <- function(){
     .default = readr::col_character(),
     record_id = readr::col_double(),
   )
-  REDCapR::redcap_read(records = NULL,
+  raw_data <- REDCapR::redcap_read(records = NULL,
                        col_types=col_types,
-                       verbose = TRUE,batch_size = 1000,
+                       verbose = TRUE,
+                       batch_size = 1000,
                        redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
                        token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
   )$data  %>%
-    tidyr::fill(record_id, eb_mrn) %>% 
-    dplyr::filter(!is.na(raw_food_id)) %>% 
-    dplyr::select(record_id, eb_mrn, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
-    dplyr::rename(mrn=eb_mrn) %>% 
-    dplyr::distinct() %>% 
-    add_meal_id() 
-  
+    tidyr::fill(record_id, eb_mrn)
+  patients <- unique(raw_data$eb_mrn)
+  # add in some dummy entries for patients lacking any meals
+  # so we can still check if the MRNs have been registered
+  return(
+    list(
+      "patients"=patients,
+      "df"=raw_data %>% 
+        dplyr::filter(!is.na(raw_food_id)) %>% 
+        dplyr::select(record_id, eb_mrn, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
+        dplyr::rename(mrn=eb_mrn) %>% 
+        dplyr::distinct() %>% 
+        add_meal_id() 
+    )
+  )
 }
