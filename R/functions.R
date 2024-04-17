@@ -1,4 +1,3 @@
-
 clean_diet_file <- function(filepath){
   computrition_export_raw <- suppressMessages(readxl::read_excel(filepath)) %>%
       janitor::clean_names() %>% 
@@ -59,7 +58,7 @@ clean_diet_file <- function(filepath){
     dplyr::rename(
       computrition_portion_consumed = portion_consumed,
       serving_size=serving_amt_numeric) %>%
-    dplyr::mutate(id = paste(mrn, meal_date, meal, raw_food_id, sep = "_"))
+    add_meal_id()
 
   
   return(computrition_export_clean)
@@ -169,7 +168,7 @@ clean_diet_redcap <- function(redcap_pull) {
   redcap_pull
 }
 
-push_to_redcap <- function(clean_diet_table) {
+push_to_redcap <- function(clean_diet_table, session) {
 
   # need the following fields
   tbl_names <-  c("record_id", "redcap_event_name", "redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn",
@@ -185,9 +184,8 @@ push_to_redcap <- function(clean_diet_table) {
     dplyr::mutate(eb_mrn = as.integer(eb_mrn))
   
   formatted_tbl <- clean_diet_table %>%
-    dplyr::mutate(
-      mrn = as.integer(mrn),
-      id = paste(mrn, meal_date, meal, raw_food_id, sep = "_")) %>%
+    dplyr::mutate(mrn = as.integer(mrn)) %>% 
+    add_meal_id() %>% 
     dplyr::filter(!id %in% redcap_pull$id) %>%
     dplyr::mutate(redcap_repeat_instrument = "computrition_data", redcap_event_name = "computrition_data_arm_1", eb_mrn = mrn)
   
@@ -228,8 +226,9 @@ push_to_redcap <- function(clean_diet_table) {
     select(-c(in_redcap, redcap_repeat_instance))
   
   user_str="unknown"
+  #print(session$user)
   # check for Rsconnect username
-  if(exists("session")){
+  if(!is.null(session$user)){
     user_str = session$user
   } else if (Sys.info()['user'] != ""){
     # fall back to local username
@@ -237,29 +236,34 @@ push_to_redcap <- function(clean_diet_table) {
   }
   
   # increment the repeat instance for those patients
+  #print(formatted_tbl)
   formatted_tbl_final <- formatted_tbl %>%
     dplyr::left_join(redcap_dtls, by = "eb_mrn") %>%
     dplyr::mutate(upload_date = as.character(Sys.Date()),
-                  uploader =user_str) %>%
+                  uploader = user_str) %>%
     dplyr::select(dplyr::all_of(tbl_names)) %>%
     populate_redcap_repeat_instance() %>% 
     dplyr::mutate(eb_mrn = NA_integer_, 
-           amt_eaten = as.character(amt_eaten),
-           amt_eaten = dplyr::case_when(amt_eaten == "1" ~ "1.0", amt_eaten == "Missing" ~ "-1.0", TRUE ~ amt_eaten)) %>%
+                  #                amt_eaten = dplyr::case_when(amt_eaten == "1" ~ 1, amt_eaten == "Missing" ~ -1, TRUE ~ as.numeric(amt_eaten))) %>%
+                  amt_eaten = dplyr::case_when(amt_eaten == "Missing" ~ -1, TRUE ~ as.numeric(as.character(amt_eaten)))) %>% # if you don't do the as.character, the numeric ends up as the factor number, not the actual number
     dplyr::bind_rows(new_pts_to_add) 
+  #print(formatted_tbl_final)
+  if(any(formatted_tbl_final$amt_eaten > 1)) stop("Error: amt_eaten in wrong format")
   
 
   
-  
-  REDCapR::redcap_write(
-    ds_to_write = formatted_tbl_final,
+#  check <- c(REDCapR::validate_for_write(formatted_tbl_final[1:10,] %>% select(-eb_mrn))
+
+  write_result <- REDCapR::redcap_write_oneshot(
+    ds = formatted_tbl_final,
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
     config_options = redcap_config_options,
     overwrite_with_blanks = FALSE, # for now we can keep what is already in there
     verbose = FALSE # don't print any details (to minimize printing of PHI)
   )
-  
+  if (write_result$status_code != 200) showNotification(paste(write_result$status_code, write_result$outcome_message, ", record IDs", write_result$affected_ids))
+  return(list("nrows"=nrow(formatted_tbl_final), "res"=write_result))
   #cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
 }
 
@@ -273,18 +277,28 @@ populate_redcap_repeat_instance <- function(df){
   df %>%
     dplyr::filter(redcap_repeat_instrument == "computrition_data") %>% # should be redundant
     dplyr::group_by(eb_mrn) %>%
-    dplyr::mutate(latest_computrition_repeat_instance = ifelse(all(is.na(redcap_repeat_instance)), 0, max(redcap_repeat_instance, na.rm = T))) %>%
-    dplyr::group_by(eb_mrn, is.na(redcap_repeat_instance)) %>% #split up thos with and those without repeat instances
+    dplyr::mutate(latest_computrition_repeat_instance = ifelse(all(is.na(redcap_repeat_instance)), 0, max(redcap_repeat_instance, na.rm = T)),
+                  needs_instance =  is.na(redcap_repeat_instance)) %>%
+    dplyr::group_by(eb_mrn, needs_instance) %>% #split up thos with and those without repeat instances
     dplyr::mutate(redcap_repeat_instance = ifelse(
-      !is.na(redcap_repeat_instance), 
+      !needs_instance, 
       redcap_repeat_instance,
       dplyr::row_number() + latest_computrition_repeat_instance)) %>% 
     dplyr::ungroup() %>%
-    select(-latest_computrition_repeat_instance, -`is.na(redcap_repeat_instance)`)
+    select(-latest_computrition_repeat_instance, -needs_instance)
 
 }
 
-
+add_meal_id <- function(df){
+  for (col in c("mrn", "meal_date", "meal", "raw_food_id")){
+    if(!col %in% colnames(df)) stop(paste(col, "must be a column in this dataframe"))
+  }
+  df %>% 
+    mutate(
+      id = paste(mrn, meal_date, meal, raw_food_id, sep = "_")
+    )
+  
+}
 
 
 redcap_delete_event <- function (redcap_uri, token, records_to_delete, arm_of_records_to_delete = NULL, 
@@ -407,6 +421,8 @@ get_meal_entries <- function(){
     tidyr::fill(record_id, eb_mrn) %>% 
     dplyr::filter(!is.na(raw_food_id)) %>% 
     dplyr::select(record_id, eb_mrn, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten) %>%
-    dplyr::distinct()
+    dplyr::rename(mrn=eb_mrn) %>% 
+    dplyr::distinct() %>% 
+    add_meal_id() 
   
 }

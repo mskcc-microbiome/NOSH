@@ -7,9 +7,10 @@
 #' @return A shiny dashboard for all your beautiful food data
 NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   if (interactive()) dotenv::load_dot_env()
+  init_data <- get_meal_entries()
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
     dplyr::bind_rows(
-      get_meal_entries()%>% select(-amt_eaten, -serving_size, -eb_mrn) ,
+      init_data%>% select(-amt_eaten, -serving_size, -mrn) ,
       get_redcap_unit_table())
   )
   ui <- navbarPage(
@@ -44,7 +45,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       title = "Data Overview",
       fluidPage(
         shinyjs::useShinyjs(),
-        mod_nutrient_select_ui("dashboard"),
+        mod_datacompleteness_ui("dashboard"),
+#        mod_nutrient_select_ui("dashboard"),
         mod_summary_table_ui("dashboard"),
         mod_meal_histogram_ui("dashboard")
       )
@@ -53,7 +55,9 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       title = "Patient Meal Explorer",
       fluidPage(
         shinyjs::useShinyjs(),
+        mod_datacompleteness_ui("patient"),
         mod_mrn_select_ui("patient"),
+        mod_bymeal_checkbox_io("patient"),
         mod_nutrient_select_ui("patient"),
         mod_patientdash_ui("patient")
         #mod_user_ui("patient"),
@@ -67,14 +71,15 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       hideTab(inputId = "tabs", target = "Upload Computrition Data")
       hideTab(inputId = "tabs", target = "Review Unit Table")
     }
+    rv <- reactiveValues(current_redcap_diet_data=init_data )
     # computrition upload
-    mod_loadfile_server("uploadfile")
+    mod_loadfile_server("uploadfile", rv)
     # fndds matcher
     mod_matchFNDDS_server("foodmatch", df = unannotated_food)
     # data overview
-    mod_dashboard_server("dashboard")
+    mod_dashboard_server("dashboard", rv)
     # 
-    mod_patientdash_server("patient")
+    mod_patientdash_server("patient", rv)
   }
   shinyApp(ui, server)
 }

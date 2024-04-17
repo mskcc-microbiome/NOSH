@@ -4,7 +4,7 @@
 #' @param unittable 
 #' @param fndds_summary 
 #'
-#' @return
+#' @return list
 #' @export
 #'
 #' @examples
@@ -16,24 +16,24 @@ merge_meals_and_units <- function(dev_data, unittable, fndds_summary) {
   #dev_data has mrn, meal_date, meal, raw_food_id, serving_size, raw_food_serving_unit, amt_eaten (match by raw food serving unit too?)
   # date intake should be a date type, and amt eaten shouold be numeric
   
-pt_data_w_unit_table <- dplyr::left_join(
-  dev_data %>% 
-    mutate(meal_date = as.Date(meal_date),
-           amt_eaten = as.numeric(amt_eaten)),
-  unittable %>% 
-    dplyr::mutate("raw_food_id" = gsub("2017 ", "", raw_food_id)) %>% 
-    dplyr::select(-record_id) %>% 
-    dplyr::distinct(), 
-  by = c("raw_food_id", "raw_food_serving_unit"))
-
-missing_rows <- sum(is.na(pt_data_w_unit_table$fndds_food_code))
-complete_rows <- sum(!is.na(pt_data_w_unit_table$fndds_food_code))
-
-fndds_summary$fndds_food_code <- as.numeric(fndds_summary$fndds_food_code)
-pt_data_full_merge <- dplyr::left_join(pt_data_w_unit_table %>% dplyr::filter(!is.na(fndds_food_code)), fndds_summary, by = "fndds_food_code")
-
-return(pt_data_full_merge)
-
+  pt_data_w_unit_table <- dplyr::left_join(
+    dev_data %>% 
+      mutate(meal_date = as.Date(meal_date),
+             amt_eaten = as.numeric(amt_eaten)),
+    unittable %>% 
+      dplyr::mutate("raw_food_id" = gsub("2017 ", "", raw_food_id)) %>% 
+      dplyr::select(-record_id) %>% 
+      dplyr::distinct(), 
+    by = c("raw_food_id", "raw_food_serving_unit"))
+  
+  missing_rows <- sum(is.na(pt_data_w_unit_table$fndds_food_code))
+  complete_rows <- sum(!is.na(pt_data_w_unit_table$fndds_food_code))
+  
+  fndds_summary$fndds_food_code <- as.numeric(fndds_summary$fndds_food_code)
+  pt_data_full_merge <- dplyr::left_join(pt_data_w_unit_table %>% dplyr::filter(!is.na(fndds_food_code)), fndds_summary, by = "fndds_food_code")
+  
+  return(list("df"=pt_data_full_merge, "status"=paste(missing_rows, "of the", nrow(pt_data_w_unit_table), "meal entries are missing an FNDDS match")))
+  
 }
 
 

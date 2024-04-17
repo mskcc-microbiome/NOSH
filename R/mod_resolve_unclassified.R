@@ -271,7 +271,7 @@ mod_matchFNDDS_server <- function(id, df) {
 }
 mod_matchFNDDS_demo <- function() {
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
-    dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size,-eb_mrn),
+    dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size,-mrn),
                      get_redcap_unit_table())
   )
   ui <- fluidPage(

@@ -18,6 +18,6 @@ utils::globalVariables(
     "raw_food_serving_unit", "raw_to_fndds_unit_matcher", "record_id",
     "redcap_arm_export", "redcap_repeat_instance", "redcap_repeat_instrument",
     "sanitize_token", "serving_amt", "serving_amt_numeric", "serving_size", "session",
-    "value"
+    "value", "latest_computrition_repeat_instance","needs_instance"
   )
 )

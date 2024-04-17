@@ -20,9 +20,11 @@ mod_meal_histogram_ui <- function(id) {
 
 
 
-mod_dashboard_server <- function(id) {
+mod_dashboard_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
-    pt_data_full_merge <- merge_meals_and_units(dev_data = get_meal_entries(), unittable = unittable, fndds_summary = fndds_summary)
+    pt_data_full_merge <- reactive({
+      merge_meals_and_units(dev_data = rv$current_redcap_diet_data, unittable = unittable, fndds_summary = fndds_summary)
+    })
     # reactive function to send the user input to ggplot
     # get_plot_data <- reactive({
     #   tabulate_pt_nutrition(pt_data_full_merge, mrn=3, nutrient_list=input$nutrients,
@@ -39,19 +41,24 @@ mod_dashboard_server <- function(id) {
     # )
     # 
     # 
+    observe({
+      output$patient_completeness<- renderText(pt_data_full_merge()$status)
+    })
+    
     output$summary_table <- renderTable({ 
-      dplyr::tibble(title = 'Number of patients', number = pt_data_full_merge %>% dplyr::distinct(mrn) %>% nrow)
+      dplyr::tibble(title = 'Number of patients', number = pt_data_full_merge()$df %>% dplyr::distinct(mrn) %>% nrow)
     }
     )
     
     output$meal_histogram <- renderPlot({ 
       
-      ggplot2::ggplot(pt_data_full_merge , ggplot2::aes(x=meal_date)) + ggplot2::geom_bar() + ggplot2::theme_bw() 
+      ggplot2::ggplot(pt_data_full_merge()$df , ggplot2::aes(x=meal_date)) + ggplot2::geom_bar() + ggplot2::theme_bw() +
+        ggplot2::labs(x="Date", y="Meal Item Count")
     }
     )
     
 
-#    output$user <- renderText(paste("Session$user =", session$user, "; Sys.getenv(USER) =", Sys.getenv("USER"),  "; Sys.info()[user] =", Sys.info()["user"],  "; Sys.getenv(LOGNAME) =", Sys.getenv("LOGNAME")) )
+    output$user <- renderText(paste("Session$user =", session$user, "; Sys.getenv(USER) =", Sys.getenv("USER"),  "; Sys.info()[user] =", Sys.info()["user"],  "; Sys.getenv(LOGNAME) =", Sys.getenv("LOGNAME")) )
 
   })
 }
@@ -66,7 +73,8 @@ mod_dashboard_demo <- function() {
   )
 
   server <- function(input, output, session) {
-    mod_dashboard_server("taco")
+    rv <- reactiveValues(current_redcap_diet_data=get_meal_entries() )
+    mod_dashboard_server("taco", rv)
   }
   shinyApp(ui, server)
   
