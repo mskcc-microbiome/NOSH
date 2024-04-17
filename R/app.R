@@ -71,11 +71,13 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       hideTab(inputId = "tabs", target = "Upload Computrition Data")
       hideTab(inputId = "tabs", target = "Review Unit Table")
     }
-    rv <- reactiveValues(current_redcap_diet_data=init_data )
+    rv <- reactiveValues(
+      current_redcap_diet_data=init_data,
+      unannotated_food=unannotated_food)
     # computrition upload
     mod_loadfile_server("uploadfile", rv)
     # fndds matcher
-    mod_matchFNDDS_server("foodmatch", df = unannotated_food)
+    mod_matchFNDDS_server("foodmatch", rv)
     # data overview
     mod_dashboard_server("dashboard", rv)
     # 

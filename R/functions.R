@@ -180,8 +180,8 @@ push_to_redcap <- function(clean_diet_table, session) {
   
   redcap_pull <- clean_diet_redcap(redcap_raw)
   
-  redcap_pts <- pull_redcap_pts() %>%
-    dplyr::mutate(eb_mrn = as.integer(eb_mrn))
+  # redcap_pts <- pull_redcap_pts() %>%
+  #   dplyr::mutate(eb_mrn = as.integer(eb_mrn))
   
   formatted_tbl <- clean_diet_table %>%
     dplyr::mutate(mrn = as.integer(mrn)) %>% 
@@ -190,41 +190,37 @@ push_to_redcap <- function(clean_diet_table, session) {
     dplyr::mutate(redcap_repeat_instrument = "computrition_data", redcap_event_name = "computrition_data_arm_1", eb_mrn = mrn)
   
   # get latest instance number for existing patients
-  redcap_dtls <- redcap_pull %>%
-    dplyr::arrange(desc(redcap_repeat_instance)) %>%
-    dplyr::distinct(record_id, eb_mrn, .keep_all = T) %>%
-    dplyr::select(record_id, eb_mrn, redcap_repeat_instance) %>%
-    dplyr::mutate(redcap_repeat_instance = redcap_repeat_instance + 1, in_redcap = TRUE)
+  redcap_dtls <- get_patients_latest_record(redcap_pull) 
   
   
-  if(exists("next_id")) remove(next_id)
-  next_id <- REDCapR::redcap_next_free_record_name(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"))
-  
-  # generate appropriate record_id and repeat_instrument for each unique patient (based one whether they already are in redcap)
-  for(mrn in unique(dplyr::filter(formatted_tbl, !eb_mrn %in% redcap_dtls$eb_mrn)$eb_mrn)) {
-    
-    # if patient is not in redcap baseline (so no record ID has been assigned to their MRN) give them the next available record ID
-    if(!mrn %in% redcap_pts$eb_mrn) {
-      assigned_id <- next_id 
-      next_id <- as.character(as.integer(next_id) + 1)
-    } else {
-      # if they are in redcap (but have not had any diet data entered) link them to their pre-existing record ID
-      assigned_id <- redcap_pts$record_id[redcap_pts$eb_mrn == mrn]
-    }
-    
-    tbl <- data.frame(record_id = assigned_id, eb_mrn = mrn, redcap_repeat_instance = 1, in_redcap = FALSE)
-    redcap_dtls <- rbind(redcap_dtls, tbl)
-  }
-  
+  # if(exists("next_id")) remove(next_id)
+  # next_id <- REDCapR::redcap_next_free_record_name(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"))
+  # 
+  # # generate appropriate record_id and repeat_instrument for each unique patient (based one whether they already are in redcap)
+  # for(mrn in unique(dplyr::filter(formatted_tbl, !eb_mrn %in% redcap_dtls$eb_mrn)$eb_mrn)) {
+  #   
+  #   # if patient is not in redcap baseline (so no record ID has been assigned to their MRN) give them the next available record ID
+  #   if(!mrn %in% redcap_pts$eb_mrn) {
+  #     assigned_id <- next_id 
+  #     next_id <- as.character(as.integer(next_id) + 1)
+  #   } else {
+  #     # if they are in redcap (but have not had any diet data entered) link them to their pre-existing record ID
+  #     assigned_id <- redcap_pts$record_id[redcap_pts$eb_mrn == mrn]
+  #   }
+  #   
+  #   tbl <- data.frame(record_id = assigned_id, eb_mrn = mrn, redcap_repeat_instance = 1, in_redcap = FALSE)
+  #   redcap_dtls <- rbind(redcap_dtls, tbl)
+  # }
+  # 
   # print("redcap details:")
   # print(redcap_dtls)
 
   # need to link new patients by MRN to their record ID (so have to add to "baseline" instrument)
-  new_pts_to_add <- redcap_dtls %>%
-    filter(!in_redcap) %>% 
-    mutate(redcap_event_name = "baseline_arm_1") %>%
-    select(-c(in_redcap, redcap_repeat_instance))
-  
+  # new_pts_to_add <- redcap_dtls %>%
+  #   filter(!in_redcap) %>% 
+  #   mutate(redcap_event_name = "baseline_arm_1") %>%
+  #   select(-c(in_redcap, redcap_repeat_instance))
+  # 
   user_str="unknown"
   #print(session$user)
   # check for Rsconnect username
@@ -238,27 +234,29 @@ push_to_redcap <- function(clean_diet_table, session) {
   # increment the repeat instance for those patients
   #print(formatted_tbl)
   formatted_tbl_final <- formatted_tbl %>%
-    dplyr::left_join(redcap_dtls, by = "eb_mrn") %>%
+    dplyr::left_join(redcap_dtls %>% rename("latest_computrition_repeat_instance"=redcap_repeat_instance), by = "eb_mrn") %>%
     dplyr::mutate(upload_date = as.character(Sys.Date()),
                   uploader = user_str) %>%
-    dplyr::select(dplyr::all_of(tbl_names)) %>%
+    dplyr::mutate(redcap_repeat_instance = NA) %>% 
     populate_redcap_repeat_instance() %>% 
-    dplyr::mutate(eb_mrn = NA_integer_, 
-                  #                amt_eaten = dplyr::case_when(amt_eaten == "1" ~ 1, amt_eaten == "Missing" ~ -1, TRUE ~ as.numeric(amt_eaten))) %>%
+    dplyr::select(dplyr::all_of(tbl_names)) %>%
+    dplyr::mutate(#                amt_eaten = dplyr::case_when(amt_eaten == "1" ~ 1, amt_eaten == "Missing" ~ -1, TRUE ~ as.numeric(amt_eaten))) %>%
                   amt_eaten = dplyr::case_when(amt_eaten == "Missing" ~ -1, TRUE ~ as.numeric(as.character(amt_eaten)))) %>% # if you don't do the as.character, the numeric ends up as the factor number, not the actual number
-    dplyr::bind_rows(new_pts_to_add) 
-  #print(formatted_tbl_final)
+#    dplyr::bind_rows(new_pts_to_add)  %>%
+    select(-eb_mrn)
+#  print(formatted_tbl_final)
   if(any(formatted_tbl_final$amt_eaten > 1)) stop("Error: amt_eaten in wrong format")
+  if(any(formatted_tbl_final$redcap_repeat_instance <= max(redcap_dtls$redcap_repeat_instance))) stop("Error: redcap_repeat_instance incremented incorrectly")
   
 
   
 #  check <- c(REDCapR::validate_for_write(formatted_tbl_final[1:10,] %>% select(-eb_mrn))
 
-  write_result <- REDCapR::redcap_write_oneshot(
-    ds = formatted_tbl_final,
+  write_result <- REDCapR::redcap_write(
+    ds_to_write = formatted_tbl_final,
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-    config_options = redcap_config_options,
+    #config_options = redcap_config_options,
     overwrite_with_blanks = FALSE, # for now we can keep what is already in there
     verbose = FALSE # don't print any details (to minimize printing of PHI)
   )
@@ -266,18 +264,25 @@ push_to_redcap <- function(clean_diet_table, session) {
   return(list("nrows"=nrow(formatted_tbl_final), "res"=write_result))
   #cat(paste("the following were written to redcap:", formatted_tbl_final, "", sep="\n"))
 }
+get_patients_latest_record <- function(df){
+df %>%
+  dplyr::arrange(desc(redcap_repeat_instance)) %>%
+  dplyr::distinct(record_id, eb_mrn, .keep_all = T) %>%
+  dplyr::select(record_id, eb_mrn, redcap_repeat_instance) %>%
+  dplyr::mutate(redcap_repeat_instance = redcap_repeat_instance, in_redcap = TRUE)
+}
 
 populate_redcap_repeat_instance <- function(df){
   #. this is a bit tricky but we need to deal with diet data containing
   # 1) multiple patients and 
   # 2) possible pre-existing diet data where a repeat instance has already been assigned
-  for (col in c("redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn")){
+  for (col in c("redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn", "latest_computrition_repeat_instance")){
     if(!col %in% colnames(df)) stop(paste(col, "must be a column in this dataframe"))
   }
   df %>%
     dplyr::filter(redcap_repeat_instrument == "computrition_data") %>% # should be redundant
     dplyr::group_by(eb_mrn) %>%
-    dplyr::mutate(latest_computrition_repeat_instance = ifelse(all(is.na(redcap_repeat_instance)), 0, max(redcap_repeat_instance, na.rm = T)),
+    dplyr::mutate(latest_computrition_repeat_instance = ifelse(all(is.na(latest_computrition_repeat_instance)), 0, max(latest_computrition_repeat_instance, na.rm = T)),
                   needs_instance =  is.na(redcap_repeat_instance)) %>%
     dplyr::group_by(eb_mrn, needs_instance) %>% #split up thos with and those without repeat instances
     dplyr::mutate(redcap_repeat_instance = ifelse(

@@ -54,15 +54,23 @@ test_that("mean data from meal-less patients",{
 
 
 test_that("we assign valid repeat instrument instances for diet data", {
-  tmp <- data.frame(eb_mrn=rep(c(1,3,4), each=4),
-                    redcap_repeat_instance=c(NA, NA, NA, NA,
-                                             1,2,3,4,
-                                             1,NA, NA, NA)
+  tmp <- data.frame(
+    record_id=rep(c(1,3,4), each=4),
+    eb_mrn=rep(c(1,3,4), each=4),
+    redcap_repeat_instance=c(NA, NA, NA, NA,
+                             1,2,3,4,
+                             1,NA, NA, NA)
   )
-  desired_repeat_instances <- c(1:4, 1:4, 1:4)
+  redcap_dtls <- get_patients_latest_record(tmp)
+  desired_repeat_instances <- c(1:4, 5:8, 2:5)
+  
   # this should error because we don't have one of the required columns
   expect_error(populate_redcap_repeat_instance(tmp))
   tmp$redcap_repeat_instrument <- "computrition_data"
-  result <- populate_redcap_repeat_instance(tmp)
-  expect_equal(desired_repeat_instances, result$redcap_repeat_instance)
+  result <-   tmp %>% 
+    left_join(redcap_dtls %>% rename("latest_computrition_repeat_instance"=redcap_repeat_instance), by = "eb_mrn") %>%
+    dplyr::mutate(redcap_repeat_instance = NA,
+                  redcap_repeat_instrument= "computrition_data") %>% 
+    populate_redcap_repeat_instance() 
+      expect_equal(desired_repeat_instances, result$redcap_repeat_instance)
 })
