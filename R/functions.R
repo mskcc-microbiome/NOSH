@@ -30,7 +30,7 @@ clean_diet_file <- function(filepath){
       )
     ) %>%
     tidyr::fill(c("meal", "mrn", "meal_date"), .direction = "down") %>%
-    dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} [value|average|total])|(condiments, salt|pepper)|(\\*{8})") &
+    dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} (value|average|total))|(condiments, salt|pepper)|(\\*{8})") &
              !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
              !menu_item_name %in% remove_items
     )
