@@ -17,7 +17,6 @@ clean_diet_file <- function(filepath){
   # SuppressWarnings for mrn conversion because it will always warn and the current behavior
   # of forcing non-ints to NAs is intentional.
   # the case_when is similar
-  
   computrition_export_clean <- computrition_export %>% 
     janitor::clean_names() %>%
     dplyr::mutate(
@@ -53,6 +52,7 @@ clean_diet_file <- function(filepath){
       amt_eaten = factor(NA_integer_, levels = c("Missing", 0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
     ) %>%
     dplyr::mutate(raw_food_id = factor(raw_food_id)) %>% #, levels = sort(unique(unit_table$raw_food_id)))) %>%
+    dplyr::mutate(mrn = stringr::str_pad(as.character(mrn), 8, "left", "0")) %>% 
     dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit,  portion_consumed,
                   amt_eaten) %>% 
     dplyr::rename(

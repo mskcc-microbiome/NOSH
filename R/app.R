@@ -1,7 +1,7 @@
 #' NOSH Shiny App
 #'
 #' @name NOSH
-#' @rdname nosh
+#' @rdname nosh 
 #' @export
 #' @import shiny
 #' @return A shiny dashboard for all your beautiful food data
