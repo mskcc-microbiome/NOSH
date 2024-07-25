@@ -9,10 +9,10 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   if (interactive()) dotenv::load_dot_env()
   init_data <- get_meal_entries()
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
-    dplyr::bind_rows(
-      init_data$df %>% dplyr::select(raw_food_id, raw_food_serving_unit),
-      get_redcap_unit_table())
+    meal_foods = init_data$df %>% dplyr::select(raw_food_id, raw_food_serving_unit) %>% distinct(),
+    redcap_unittable =  get_redcap_unit_table()
   )
+  
   ui <- navbarPage(
     title = "Nutrition Optimization for Science and Health",
     id = "tabs",
@@ -46,7 +46,8 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       fluidPage(
         shinyjs::useShinyjs(),
         mod_datacompleteness_ui("dashboard"),
-#        mod_nutrient_select_ui("dashboard"),
+        mod_missing_table_ui("dashboard"),
+        #        mod_nutrient_select_ui("dashboard"),
         mod_summary_table_ui("dashboard"),
         mod_meal_histogram_ui("dashboard")
       )

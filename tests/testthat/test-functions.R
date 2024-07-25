@@ -111,7 +111,6 @@ test_that("parsing computrition retains mrn character type", {
       raw_food_id = structure(1L, levels = "Sandwich, peantu butter and jellyfish", class = "factor"),
       serving_size = 1,
       raw_food_serving_unit = "each",
-      computrition_portion_consumed=NA,
       amt_eaten = structure(
         NA_integer_,
         levels = c("Missing",

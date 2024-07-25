@@ -8,6 +8,10 @@ mod_nutrient_select_ui <- function(id) {
 #   plotOutput(NS(id, 'summary'))
 # }
 
+mod_missing_table_ui <- function(id) {
+  # NS: name space (module shiny )
+  tableOutput(NS(id, 'top_missing_meal_items'))
+}
 
 mod_summary_table_ui <- function(id) {
   # NS: name space (module shiny )
@@ -44,7 +48,9 @@ mod_dashboard_server <- function(id, rv) {
     observe({
       output$patient_completeness<- renderText(pt_data_full_merge()$status)
     })
-    
+    observe({
+      output$top_missing_meal_items <- renderTable(pt_data_full_merge()$top_missing)
+    })    
     output$summary_table <- renderTable({ 
       dplyr::tibble(title = 'Number of patients', number = pt_data_full_merge()$df %>% dplyr::distinct(mrn) %>% nrow)
     }
@@ -69,6 +75,7 @@ mod_dashboard_demo <- function() {
   ui <- fluidPage(
     mod_nutrient_select_ui("taco"),
     mod_summary_table_ui("taco"),
+    mod_missing_table_ui("taco"),
     mod_meal_histogram_ui("taco")
   )
 

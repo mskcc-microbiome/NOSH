@@ -59,14 +59,14 @@ clean_diet_file <- function(filepath){
     dplyr::mutate(raw_food_id = factor(raw_food_id)) %>% #, levels = sort(unique(unit_table$raw_food_id)))) %>%
     dplyr::mutate(mrn = stringr::str_pad(as.character(mrn), 8, "left", "0")) %>% 
     dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit, portion_consumed,
-                  computrition_amt_eaten,
+                  computrition_amt_eaten, computrition_consumed_unit,
                   amt_eaten) %>% 
     dplyr::rename(
       serving_size=serving_amt_numeric) %>%
     add_meal_id()
   if (hide_computrition_portion_consumed){
     computrition_export_clean <- computrition_export_clean %>% 
-      select(-computrition_consumed_unit, -computrition_consumed_amt)
+      select(-computrition_amt_eaten, -portion_consumed)
   }
   
   return(computrition_export_clean)

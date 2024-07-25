@@ -21,18 +21,20 @@ merge_meals_and_units <- function(dev_data, unittable, fndds_summary) {
       mutate(meal_date = as.Date(meal_date),
              amt_eaten = as.numeric(amt_eaten)),
     unittable %>% 
-      dplyr::mutate("raw_food_id" = gsub("2017 ", "", raw_food_id)) %>% 
+      # dplyr::mutate("raw_food_id" = gsub("2017 ", "", raw_food_id)) %>% 
       dplyr::select(-record_id) %>% 
       dplyr::distinct(), 
     by = c("raw_food_id", "raw_food_serving_unit"))
-  
-  missing_rows <- sum(is.na(pt_data_w_unit_table$fndds_food_code))
+  incomplete_data <- pt_data_w_unit_table %>% filter(is.na(fndds_food_code))
+  missing_rows <- nrow(incomplete_data)
   complete_rows <- sum(!is.na(pt_data_w_unit_table$fndds_food_code))
   
   fndds_summary$fndds_food_code <- as.numeric(fndds_summary$fndds_food_code)
   pt_data_full_merge <- dplyr::left_join(pt_data_w_unit_table %>% dplyr::filter(!is.na(fndds_food_code)), fndds_summary, by = "fndds_food_code")
   
-  return(list("df"=pt_data_full_merge, "status"=paste(missing_rows, "of the", nrow(pt_data_w_unit_table), "meal entries are missing an FNDDS match")))
+  return(list("df"=pt_data_full_merge, "status"=paste(missing_rows, "of the", nrow(pt_data_w_unit_table), "meal entries are missing an FNDDS match"), 
+              "top_missing"=incomplete_data %>% select(raw_food_id) %>% dplyr::group_by(raw_food_id) %>% dplyr::count() %>% 
+                dplyr::arrange(dplyr::desc(n)) %>% head))
   
 }
 

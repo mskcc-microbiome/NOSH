@@ -22,32 +22,42 @@ get_redcap_unit_table <- function(){
 
 
 
-get_meal_entries_lacking_fndds_match <- function(custom_food){
-  custom_foods_and_codes <- custom_food[!complete.cases(custom_food), ] %>%
-    mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g))%>%
-    select(record_id, raw_food_id, fndds_food_code, raw_food_serving_unit, raw_to_fndds_unit_matcher, fndds_portion_description, fndds_portion_weight_g) %>%
-    distinct() %>%
-    left_join(fndds_paw %>% select(fndds_food_code, fndds_main_food_description) %>% distinct(), by="fndds_food_code")
+get_meal_entries_lacking_fndds_match <- function(meal_foods, redcap_unittable){
+  # step 1: identify our missing data from meal entries as well as stuff missing from the unit table redcap itself
+  meal_foods_without_entries <- meal_foods %>% dplyr::anti_join(redcap_unittable)
+  all_incomplete_entries <- redcap_unittable %>% 
+    dplyr::filter(if_any(everything(), is.na))  %>% 
+    dplyr::bind_rows(meal_foods_without_entries) %>%
+    mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g)) %>% 
+    select(-unit_table_complete) %>% 
+    distinct()
+    
+  # step 2:  join with FNDDS so we get some nice dropdowns from the factor types. 
+  # this makes autocompletion much nicer.  this is a little tricky cause we have several cases to handle.
+  # The first  cases is where initial seed unit table used an outdated food code (eg 12350210).  these
+  # when joined with the current database will result in NAs, so the food code needs to be stripped
+  # and other partially matching fields need to be turned into NA.  The user can then view these 
+  # in the table and enter the correct ones.
+    
+  custom_foods_and_codes <- all_incomplete_entries %>%
+    dplyr::left_join(fndds_paw %>% select(fndds_food_code, fndds_main_food_description) %>% distinct(), by="fndds_food_code") %>% 
+    dplyr::mutate(
+      missing_andor_outdated_food_code = is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g),
+      fndds_portion_description = ifelse(missing_andor_outdated_food_code, NA, fndds_portion_description),
+      raw_to_fndds_unit_matcher = ifelse(missing_andor_outdated_food_code, NA, raw_to_fndds_unit_matcher)
+    ) %>% 
+    select(-missing_andor_outdated_food_code)
+    
   
-  # in some cases (311 in the initial dataset) it appears that the unit table contained fndds codes such as 12350210 that are no longer in use.
-  # these will end up with NA's in the fndds_portion_weight_g column and fndds_main_food_description column.  For these, we remove the fndds food code
-  # to prompt the user to use a valid one
-  custom_foods_and_codes <- custom_foods_and_codes %>% 
-    dplyr::mutate(fndds_food_code = ifelse(is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g), NA,fndds_food_code )) %>% 
-    dplyr::mutate(fndds_portion_description = ifelse(is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g), NA, fndds_portion_description )) %>% 
-    dplyr::mutate(raw_to_fndds_unit_matcher = ifelse(is.na(fndds_main_food_description) & is.na(fndds_portion_weight_g), NA, raw_to_fndds_unit_matcher ))
-  
-  #do a 2 part join -- first (above) to match the food code with the name (above), then to match up the entries with portions
-  #otherwise, we have foods/codes matched but no description due to a missing portion.
-  df <- full_join(
+   # step 3: match up entries with portions, otherwise, we have foods/codes matched but no description due to a missing portion.
+  df <- dplyr::full_join(
     custom_foods_and_codes,
     fndds_paw %>% select(fndds_food_code,  fndds_main_food_description, fndds_portion_description, fndds_portion_weight_g),
     by=c("fndds_food_code", "fndds_main_food_description", "fndds_portion_description", "fndds_portion_weight_g")
   ) %>%
     distinct() %>%
-    filter(if_any(everything(), is.na)) %>%
     mutate(food_code_desc = paste(fndds_food_code, fndds_main_food_description))
-  df 
+  return(df)
   
 }
 
@@ -72,26 +82,32 @@ save_new_unit_entries_to_redcap <- function(unannotated_food, raw_food_id,raw_fo
     "created_by" = user,
     "unit_table_complete" = 2)
   old_entry <- unannotated_food %>% 
-    filter(raw_food_id == new_entry$raw_food_id[1]) %>% 
-    filter(raw_food_serving_unit == new_entry$raw_food_serving_unit[1])
-  if (FALSE){
+    dplyr::filter(raw_food_id == new_entry$raw_food_id[1]) %>% 
+    dplyr::filter(raw_food_serving_unit == new_entry$raw_food_serving_unit[1])
+  if (TRUE){
     print("old entry")
     print(old_entry)
   }
   if (nrow(old_entry) > 1){
     print("Warning: fix unit table in redcap manually; multiple entries found with the same raw food id and raw food serving unit!")
-  } else if (nrow(old_entry) == 0){
-    print("adding entirely new food entry")
-    new_entry$record_id = max(unannotated_food$record_id) + 1
-  } else{
-    new_entry$record_id = old_entry$record_id
+  } else {
+    if (nrow(old_entry) == 0 | is.na(old_entry$record_id[1]) ){
+      print("adding entirely new food entry")
+      new_entry$record_id = REDCapR::redcap_next_free_record_name(
+        redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
+        token = Sys.getenv("UNITTABLE_REDCAP_TOKEN")
+      )
+    } else{
+      new_entry$record_id = old_entry$record_id
+    }
+    
+    REDCapR::redcap_write_oneshot(new_entry,
+                                  redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
+                                  token = Sys.getenv("UNITTABLE_REDCAP_TOKEN"),
+    )
+    print("New food/foodcode/portion  saved to redcap:")
+    print(new_entry)
   }
-  REDCapR::redcap_write_oneshot(new_entry,
-                                redcap_uri = Sys.getenv("UNITTABLE_REDCAP_URI"),
-                                token = Sys.getenv("UNITTABLE_REDCAP_TOKEN"),
-  )
-  print("New food/foodcode/portion  saved to redcap:")
-  print(new_entry)
 }
 
 mod_matchFNDDS_ui <- function(id) {
@@ -270,9 +286,10 @@ mod_matchFNDDS_server <- function(id, df) {
   })
 }
 mod_matchFNDDS_demo <- function() {
+
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
-    dplyr::bind_rows(get_meal_entries() %>% select(-amt_eaten, -serving_size,-mrn),
-                     get_redcap_unit_table())
+    meal_foods = get_meal_entries()$df %>% dplyr::select(raw_food_id, raw_food_serving_unit) %>% distinct(),
+    redcap_unittable =  get_redcap_unit_table()
   )
   ui <- fluidPage(
     # make sure this is enable in the ui, not in the script itself!
