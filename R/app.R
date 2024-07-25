@@ -10,7 +10,7 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
   init_data <- get_meal_entries()
   unannotated_food <-   get_meal_entries_lacking_fndds_match(
     dplyr::bind_rows(
-      init_data$df %>% select(-amt_eaten, -serving_size, -mrn) ,
+      init_data$df %>% dplyr::select(raw_food_id, raw_food_serving_unit),
       get_redcap_unit_table())
   )
   ui <- navbarPage(

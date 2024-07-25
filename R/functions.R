@@ -33,13 +33,17 @@ clean_diet_file <- function(filepath){
              !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
              !menu_item_name %in% remove_items
     )
+  hide_computrition_portion_consumed = FALSE
   if (! "portion_consumed" %in% colnames(computrition_export_clean)){
+    hide_computrition_portion_consumed = TRUE
     computrition_export_clean$portion_consumed <- NA
   }
   computrition_export_clean <- computrition_export_clean %>%
     dplyr::mutate(
       serving_amt =  gsub("(.*?) (.*)", "\\1", portion_size),
       raw_food_serving_unit =  gsub("(.*?) (.*)", "\\2", portion_size),
+      computrition_consumed_unit =  gsub("(.*?) (.*)", "\\2", portion_consumed),
+      computrition_consumed_amt =  as.numeric(gsub("(.*?) (.*)", "\\1", portion_consumed)),
       dplyr::across(c(serving_amt), 
              function(x) as.numeric(readr::parse_number(x)),
              .names = "{col}_numeric"),
@@ -49,17 +53,21 @@ clean_diet_file <- function(filepath){
         TRUE ~ serving_amt_numeric
       ),
       raw_food_id = sub("^\\^", "", menu_item_name),
+      computrition_amt_eaten =  ifelse(computrition_consumed_unit == raw_food_serving_unit, computrition_consumed_amt/serving_amt_numeric, NA ),
       amt_eaten = factor(NA_integer_, levels = c("Missing", 0.0, 0.25, 0.33, 0.5, 0.66, 0.75, 1))
-    ) %>%
+  ) %>%
     dplyr::mutate(raw_food_id = factor(raw_food_id)) %>% #, levels = sort(unique(unit_table$raw_food_id)))) %>%
     dplyr::mutate(mrn = stringr::str_pad(as.character(mrn), 8, "left", "0")) %>% 
-    dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit,  portion_consumed,
+    dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit, portion_consumed,
+                  computrition_amt_eaten,
                   amt_eaten) %>% 
     dplyr::rename(
-      computrition_portion_consumed = portion_consumed,
       serving_size=serving_amt_numeric) %>%
     add_meal_id()
-
+  if (hide_computrition_portion_consumed){
+    computrition_export_clean <- computrition_export_clean %>% 
+      select(-computrition_consumed_unit, -computrition_consumed_amt)
+  }
   
   return(computrition_export_clean)
 }

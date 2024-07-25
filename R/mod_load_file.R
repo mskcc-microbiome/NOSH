@@ -15,6 +15,19 @@ mod_dietdata_submitter_ui <- function(id) {
     label = "Write completed diet data to REDcap")
 }
 
+pretty_names <- tibble::deframe(dplyr::tribble(
+  ~raw, ~display,
+  "meal_date",   "Date",
+  "meal",   "Meal",
+  "raw_food_id", "Computrition\nTicket Item",
+  "serving_size", "Serving Amount",
+  "raw_food_serving_unit", "Serving Unit",
+  "portion_consumed", "Computrition\nConsumption",
+  "computrition_amt_eaten", "Computrition\nServings Consumed",
+  "amt_eaten", "amt_eaten" # left the same for tutorial consistency; might be a bad idea
+) %>% 
+  select(display, raw))
+
 mod_loadfile_server <- function(id, rv) {
   # debugging
   # input <- list("upload"=list("datapath"="~/Desktop/NOSH_test_1.xlsx"))
@@ -23,7 +36,7 @@ mod_loadfile_server <- function(id, rv) {
     raw_file <- reactive({
       req(input$upload)
       if (is.na(readxl:::format_from_signature(input$upload$datapath))){
-        showNotification("Computrition exports malformed  Excel files; this can be 'repaired' by opening this file in Excel first, and re-saving.")
+        showNotification("Computrition exports malformed Excel files; this can be 'repaired' by opening this file in Excel first, and re-saving.")
       }
       req(!is.na(readxl:::format_from_signature(input$upload$datapath)))
       ext <- clean_diet_file(input$upload$datapath)
@@ -44,10 +57,13 @@ mod_loadfile_server <- function(id, rv) {
     output$diet_file <- rhandsontable::renderRHandsontable({
       rhandsontable::rhandsontable(
         raw_file() %>% dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
-          dplyr::select(-id)
+          dplyr::select(-id) %>%
+          dplyr::rename(all_of(pretty_names))
         
         ) %>% 
-        rhandsontable::hot_cols(fixedColumnsLeft = 2)
+        rhandsontable::hot_cols(fixedColumnsLeft = 2) %>% 
+        rhandsontable::hot_col("Computrition\nTicket Item",  strict=FALSE, type="autocomplete")
+      
     })
     
     output$instructions <- renderUI({
