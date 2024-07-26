@@ -66,7 +66,7 @@ clean_diet_file <- function(filepath){
     add_meal_id()
   if (hide_computrition_portion_consumed){
     computrition_export_clean <- computrition_export_clean %>% 
-      select(-computrition_amt_eaten, -portion_consumed)
+      select(-computrition_amt_eaten, -portion_consumed, -computrition_consumed_unit)
   }
   
   return(computrition_export_clean)

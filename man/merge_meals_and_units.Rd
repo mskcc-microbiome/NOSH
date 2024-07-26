@@ -13,6 +13,9 @@ merge_meals_and_units(dev_data, unittable, fndds_summary)
 
 \item{fndds_summary}{}
 }
+\value{
+list
+}
 \description{
 get patient data
 }

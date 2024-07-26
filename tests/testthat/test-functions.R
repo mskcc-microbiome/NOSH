@@ -7,7 +7,6 @@ test_that("parsing computrition works", {
       raw_food_id = structure(1L, levels = "Sandwich, peantu butter and jellyfish", class = "factor"),
       serving_size = 1,
       raw_food_serving_unit = "each",
-      computrition_portion_consumed=NA,
       amt_eaten = structure(
         NA_integer_,
         levels = c("Missing",
@@ -22,8 +21,8 @@ test_that("parsing computrition works", {
   )
   #expect_equal(refdf, clean_diet_file(system.file("extdata", package = "NOSH") ))
   expect_equal(
-    refdf,
-    clean_diet_file(system.file("testdata", "test_computrition_export.xlsx", package="NOSH"))
+    clean_diet_file(system.file("testdata", "test_computrition_export.xlsx", package="NOSH")),
+    refdf
   )
 })
 test_that("parsing computrition works, correct regex for excluding daily averages", {
@@ -35,7 +34,6 @@ test_that("parsing computrition works, correct regex for excluding daily average
       raw_food_id = structure(1L, levels = "Soup, Beef Broth 6 oz (0)", class = "factor"),
       serving_size = 1,
       raw_food_serving_unit = "each",
-      computrition_portion_consumed=NA,
       amt_eaten = structure(
         NA_integer_,
         levels = c("Missing",
@@ -50,17 +48,17 @@ test_that("parsing computrition works, correct regex for excluding daily average
   )
   #expect_equal(refdf, clean_diet_file(system.file("extdata", package = "NOSH") ))
   expect_equal(
-    refdf,
-    clean_diet_file(system.file("testdata", "test_computrition_export_regex.xlsx", package="NOSH"))
+    clean_diet_file(system.file("testdata", "test_computrition_export_regex.xlsx", package="NOSH")),
+    refdf
   )
 })
 
 test_that("parse computrition xls with/without portions", {
   ref <- c("1 serv", "1 pkt", "1 each", "6 ounce", "4 ounce", "4 ounce")
   positive_test <- clean_diet_file(system.file("testdata", "computrition_test_with_portions.xls", package="NOSH"))
-  testthat::expect_equal(positive_test$computrition_portion_consumed, ref) 
+  testthat::expect_equal(positive_test$portion_consumed, ref) 
   negative_test <- clean_diet_file(system.file("testdata", "test_computrition_export.xlsx", package="NOSH"))
-  testthat::expect_equal(negative_test$computrition_portion_consumed, NA) 
+  testthat::expect_true(!"portion_consumed" %in%  colnames(negative_test)) 
 })
 
 test_that("parse computrition xls missing some cols but probably ok", {
@@ -75,7 +73,7 @@ test_that("mean data from meal-less patients",{
                  raw_food_serving_unit = NA_character_, serving_size = NA, 
                  amt_eaten = NA, upload_date = NA, uploader = NA), row.names = c(NA, -1L), class = "data.frame")
   cleaned_redcap_pull <- clean_diet_redcap(redcap_pull)
-  testthat::expect_equal(1, nrow(cleaned_redcap_pull))
+  testthat::expect_equal(nrow(cleaned_redcap_pull), 1)
   testthat::expect_true("00001234" %in% cleaned_redcap_pull$eb_mrn)
 }
 )
@@ -100,7 +98,7 @@ test_that("we assign valid repeat instrument instances for diet data", {
     dplyr::mutate(redcap_repeat_instance = NA,
                   redcap_repeat_instrument= "computrition_data") %>% 
     populate_redcap_repeat_instance() 
-      expect_equal(desired_repeat_instances, result$redcap_repeat_instance)
+      expect_equal( result$redcap_repeat_instance, desired_repeat_instances)
 })
 test_that("parsing computrition retains mrn character type", {
   refdf <- structure(
@@ -125,8 +123,8 @@ test_that("parsing computrition retains mrn character type", {
   )
   #expect_equal(refdf, clean_diet_file(system.file("extdata", package = "NOSH") ))
   expect_equal(
-    refdf,
-    clean_diet_file(system.file("testdata", "test_computrition_export.xlsx", package="NOSH"))
+    clean_diet_file(system.file("testdata", "test_computrition_export.xlsx", package="NOSH")),
+    refdf
   )
 })
 
