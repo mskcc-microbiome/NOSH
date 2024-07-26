@@ -64,13 +64,16 @@ get_meal_entries_lacking_fndds_match <- function(meal_foods, redcap_unittable){
 
 save_new_unit_entries_to_redcap <- function(unannotated_food, raw_food_id,raw_food_serving_unit, fndds_food_code, raw_to_fndds_unit_matcher,  fndds_portion_description, fndds_portion_weight_g, user){
   argg <- c(as.list(environment()))
+  
   if (Sys.getenv("NOSH_USER_TYPE") == "DEV") print(argg) # for debugging
-  # user will be empty if not on Rconnect
-  if (is.null(user) & Sys.getenv("NOSH_USER_TYPE") == "DEV"){
-    print(paste("manually setting user to ",  Sys.info()["user"]))
-    user= Sys.info()["user"]
-  } else{
-    stop("NOSH_USER_TYPE is not DEV and session$user is empty. This shouldn't happen, and we cannot properly determine the user")
+  # user will be empty if not on Rconnect. this is fine if in DEV mode
+  if (is.null(user)){
+    if (Sys.getenv("NOSH_USER_TYPE") == "DEV"){
+      print(paste("manually setting user to ",  Sys.info()["user"]))
+      user= Sys.info()["user"]
+    } else{
+      stop("NOSH_USER_TYPE is not DEV and session$user is empty. This shouldn't happen, and we cannot properly determine the user")
+    }
   }
   new_entry <- data.frame(
     "raw_food_id" = raw_food_id,
