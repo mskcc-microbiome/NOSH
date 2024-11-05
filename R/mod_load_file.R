@@ -58,7 +58,7 @@ mod_loadfile_server <- function(id, rv) {
       rhandsontable::rhandsontable(
         raw_file() %>% dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
           dplyr::select(-id) %>%
-          dplyr::rename(all_of(pretty_names))
+          dplyr::rename(any_of(pretty_names))
         
         ) %>% 
         rhandsontable::hot_cols(fixedColumnsLeft = 2) %>% 
