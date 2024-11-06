@@ -15,7 +15,7 @@ mod_dietdata_submitter_ui <- function(id) {
     label = "Write completed diet data to REDcap")
 }
 
-pretty_names <- tibble::deframe(dplyr::tribble(
+pretty_names_df <- dplyr::tribble(
   ~raw, ~display,
   "meal_date",   "Date",
   "meal",   "Meal",
@@ -26,7 +26,11 @@ pretty_names <- tibble::deframe(dplyr::tribble(
   "computrition_amt_eaten", "Computrition\nServings Consumed",
   "amt_eaten", "amt_eaten" # left the same for tutorial consistency; might be a bad idea
 ) %>% 
-  select(display, raw))
+  select(display, raw)
+pretty_names <- tibble::deframe(pretty_names_df)
+pretty_names_inv = pretty_names_df %>%
+  select(raw, display) %>% 
+  tibble::deframe()
 
 mod_loadfile_server <- function(id, rv) {
   # debugging
@@ -74,21 +78,15 @@ mod_loadfile_server <- function(id, rv) {
       req(input$diet_file)
       diet_table_raw <- rhandsontable::hot_to_r(input$diet_file)
       diet_table <- diet_table_raw %>%
+        dplyr::rename(any_of(pretty_names_inv)) %>% 
         filter(!is.na(amt_eaten))
       if (nrow(diet_table) > 0 ){
         showNotification(paste("Uploading ", nrow(diet_table), "rows of data"))
-        #print(head(diet_table))
         
-        
-        #print(head(diet_table %>% filter(!is.na(amt_eaten))))
         records_written_output <- push_to_redcap(diet_table, session)
         showNotification(paste(records_written_output$res$outcome_message, 
                                "consisting of", records_written_output$nrows, "meal items"))
         
-        # raw_file <- filter(raw_file, !id %in% redcap_current$id) %>%
-        #   select(-id)
-        # 
-        # print(paste("number of rows in table after data entry:",  nrow(raw_file)))
         rv$current_redcap_diet_data <- get_meal_entries()$df
         #session$reload()
       } else{
