@@ -1,3 +1,4 @@
+
 clean_diet_file <- function(filepath){
   computrition_export_raw <- suppressMessages(readxl::read_excel(filepath)) %>%
       janitor::clean_names() %>% 
@@ -29,10 +30,15 @@ clean_diet_file <- function(filepath){
       )
     ) %>%
     tidyr::fill(c("meal", "mrn", "meal_date"), .direction = "down") %>%
-    dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} (value|average|total))|(condiments, salt|pepper)|(\\*{8})") &
-             !stringr::str_detect(menu_item_name, "Date:  ") & !is.na(meal) & 
-             !menu_item_name %in% remove_items
-    )
+    dplyr::filter(!is.na(meal) & !is.na(menu_item_name) & !menu_item_name %in% remove_items) %>% 
+    dplyr::filter(!grepl("\\*{8}", menu_item_name)) %>% # gets rid of
+    dplyr::filter(!grepl("condiments, (salt|pepper)", tolower(menu_item_name))) %>%
+    dplyr::filter(!grepl("(daily|\\d{1}) (value|average|total)", tolower(menu_item_name))) %>% 
+    dplyr::filter(!grepl("Date:  ", menu_item_name))  
+  
+#    dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} (value|average|total))|(condiments, (salt|pepper))|(\\*{8})")) %>% 
+    
+     
   hide_computrition_portion_consumed = FALSE
   if (! "portion_consumed" %in% colnames(computrition_export_clean)){
     hide_computrition_portion_consumed = TRUE
@@ -59,14 +65,14 @@ clean_diet_file <- function(filepath){
     dplyr::mutate(raw_food_id = factor(raw_food_id)) %>% #, levels = sort(unique(unit_table$raw_food_id)))) %>%
     dplyr::mutate(mrn = stringr::str_pad(as.character(mrn), 8, "left", "0")) %>% 
     dplyr::select(mrn, meal_date, meal, raw_food_id, serving_amt_numeric, raw_food_serving_unit, portion_consumed,
-                  computrition_amt_eaten, computrition_consumed_unit,
+                  computrition_amt_eaten,
                   amt_eaten) %>% 
     dplyr::rename(
       serving_size=serving_amt_numeric) %>%
     add_meal_id()
   if (hide_computrition_portion_consumed){
     computrition_export_clean <- computrition_export_clean %>% 
-      select(-computrition_amt_eaten, -portion_consumed, -computrition_consumed_unit)
+      select(-computrition_amt_eaten, -portion_consumed)
   }
   
   return(computrition_export_clean)
@@ -420,7 +426,7 @@ redcap_delete_event <- function (redcap_uri, token, records_to_delete, arm_of_re
 # kernel_return <- redcap_delete_event(redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"), token = Sys.getenv("DIETDATA_REDCAP_TOKEN"), records_to_delete = c(44), arm_of_records_to_delete = 1L, instrument_name = "patient_information", event_name = "baseline_arm_1", verbose = T)
 
 
-get_meal_entries <- function(){
+get_meal_entries <- function(DEBUG=FALSE){
   col_types = readr::cols(
     .default = readr::col_character(),
     record_id = readr::col_double(),
