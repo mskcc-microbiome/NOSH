@@ -1,0 +1,9 @@
+Variable / Field Name,Form Name,Section Header,Field Type,Field Label,"Choices, Calculations, OR Slider Labels",Field Note,Text Validation Type OR Show Slider Number,Text Validation Min,Text Validation Max,Identifier?,Branching Logic (Show field only if...),Required Field?,Custom Alignment,Question Number (surveys only),Matrix Group Name,Matrix Ranking?,Field Annotation
+record_id,unit_table,,text,"<div class=""rich-text-field-label""><p>record_id</p></div>",,"eg ""2017 Milk, Chocolate Fat Free 8 oz (1.5) BR""",,,,,,,,,,,
+raw_food_id,unit_table,,text,Raw Food ID,,,,,,,,,,,,,
+raw_food_serving_unit,unit_table,,text,Raw Food Serving Unit,,"each, fl oz, etc",,,,,,,,,,,
+fndds_food_code,unit_table,,text,FNDDS Food Code,,,,,,,,,,,,,
+raw_to_fndds_unit_matcher,unit_table,,text,Raw to FNDDS Unit Matcher,,,,,,,,,,,,,
+fndds_portion_description,unit_table,,text,FNDDS Portion Description,,,,,,,,,,,,,
+fndds_portion_weight_g,unit_table,,text,FNDDS Portion Weight (gram),,,,,,,,,,,,,
+created_by,unit_table,,text,"<div class=""rich-text-field-label""><p>Created By<br /><br /></p></div>",,Username from Rconnect-added entries,,,,,,,,,,,
