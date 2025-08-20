@@ -1,6 +1,6 @@
 Package: NOSH
 Title: Shiny app for nutritional optimization for science and health
-Version: 0.0.18
+Version: 0.0.18.9000
 Authors@R: c(
     person("John", "Slingerland", , "slingerj@mskcc.org", role = c("aut")),
     person("Natalie", "Smith", , "smithn7@mskcc.org", role = c("aut" )),
@@ -11,7 +11,7 @@ Authors@R: c(
 Description: Simplify interactions between nutrition management, clinical data, and FNDDS.  NOSH facilitates diet data entry, curation, and redcap transactions.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Imports: 
     checkmate,
     dplyr,

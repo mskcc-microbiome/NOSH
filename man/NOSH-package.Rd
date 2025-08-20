@@ -2,7 +2,6 @@
 % Please edit documentation in R/NOSH-package.R
 \docType{package}
 \name{NOSH-package}
-\alias{NOSH}
 \alias{NOSH-package}
 \title{NOSH: Shiny app for nutritional optimization for science and health}
 \description{
