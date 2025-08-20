@@ -26,6 +26,7 @@ UNITTABLE_REDCAP_URI=<redcap base url, such as https://redcap.acme.org/api/ >
 UNITTABLE_REDCAP_TOKEN=<your redcap unittable api token>
 DIETDATA_REDCAP_URI=<redcap base url, such as https://redcap.acme.org/api/ >
 DIETDATA_REDCAP_TOKEN==<your redcap unittable api token>
-NOSH_USER_TYPE=<BASIC,ADMIN,DEV>
+NOSH_USER_TYPE=<BASIC,ADMIN,DEV,PEDS>
 ```
-`NOSH_USER_TYPE` determines which tabs are visible and the level of logging available
+
+`NOSH_USER_TYPE` determines which tabs are visible and the level of logging available.  In DEV mode, we also do not check for the existence of patient IDs in redcap prior to loading

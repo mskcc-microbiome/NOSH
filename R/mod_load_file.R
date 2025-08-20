@@ -50,8 +50,10 @@ mod_loadfile_server <- function(id, rv) {
       # redcap_current <- pull_diet_redcap(unique(as.integer(ext$mrn))) %>%
       #   clean_diet_redcap()
       print(paste("number of rows after filtering against data in redcap:",  nrow(ext)))
-      ext <- dplyr::filter(ext, mrn %in% rv$patients)
-      print(paste("number of rows after removing mrns missing from redcap",  nrow(ext)))
+      if (Sys.getenv("NOSH_USER_TYPE") != "DEV"){
+        ext <- dplyr::filter(ext, mrn %in% rv$patients)
+        print(paste("number of rows after removing mrns missing from redcap",  nrow(ext)))
+      }
       if(nrow(ext) == 0){
         showNotification("No enterable data found; this is likely due to this patient not being registered in REDCap; please register this patients first.")
       }
@@ -63,7 +65,6 @@ mod_loadfile_server <- function(id, rv) {
         raw_file() %>% dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
           dplyr::select(-id) %>%
           dplyr::rename(any_of(pretty_names))
-        
         ) %>% 
         rhandsontable::hot_cols(fixedColumnsLeft = 2) %>% 
         rhandsontable::hot_col("Computrition\nTicket Item",  strict=FALSE, type="autocomplete")

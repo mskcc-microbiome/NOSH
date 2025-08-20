@@ -52,13 +52,13 @@ mod_dashboard_server <- function(id, rv) {
       output$top_missing_meal_items <- renderTable(pt_data_full_merge()$top_missing)
     })    
     output$summary_table <- renderTable({ 
-      dplyr::tibble(title = 'Number of patients', number = pt_data_full_merge()$df %>% dplyr::distinct(mrn) %>% nrow)
+      dplyr::tibble(title = 'Number of patients', number = rv$current_redcap_diet_data %>% dplyr::distinct(mrn) %>% nrow)
     }
     )
     
     output$meal_histogram <- renderPlot({ 
       
-      ggplot2::ggplot(pt_data_full_merge()$df , ggplot2::aes(x=meal_date)) + ggplot2::geom_bar() + ggplot2::theme_bw() +
+      ggplot2::ggplot(rv$current_redcap_diet_data , ggplot2::aes(x=meal_date)) + ggplot2::geom_bar() + ggplot2::theme_bw() +
         ggplot2::labs(x="Date", y="Meal Item Count")
     }
     )

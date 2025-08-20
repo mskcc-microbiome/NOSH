@@ -7,8 +7,7 @@ get_redcap_unit_table <- function(){
     raw_to_fndds_unit_matcher = readr::col_double(),
     fndds_portion_description = readr::col_character(),
     fndds_portion_weight_g = readr::col_double(),
-    created_by = readr::col_character(),
-    unit_table_complete = readr::col_double()
+    created_by = readr::col_character()
   )
   REDCapR::redcap_read(records = NULL,
                        verbose = TRUE,batch_size = 1000,
@@ -27,9 +26,9 @@ get_meal_entries_lacking_fndds_match <- function(meal_foods, redcap_unittable){
   meal_foods_without_entries <- meal_foods %>% dplyr::anti_join(redcap_unittable)
   all_incomplete_entries <- redcap_unittable %>% 
     dplyr::filter(if_any(everything(), is.na))  %>% 
+    select(-grep(".*_complete$", value = TRUE, colnames(.))) %>% 
     dplyr::bind_rows(meal_foods_without_entries) %>%
     mutate(fndds_portion_weight_g=as.numeric(fndds_portion_weight_g)) %>% 
-    select(-unit_table_complete) %>% 
     distinct()
     
   # step 2:  join with FNDDS so we get some nice dropdowns from the factor types. 
@@ -82,8 +81,7 @@ save_new_unit_entries_to_redcap <- function(unannotated_food, raw_food_id,raw_fo
     "raw_to_fndds_unit_matcher"=raw_to_fndds_unit_matcher,
     "fndds_portion_description" = fndds_portion_description,
     "fndds_portion_weight_g" = fndds_portion_weight_g,
-    "created_by" = user,
-    "unit_table_complete" = 2)
+    "created_by" = user)
   old_entry <- unannotated_food %>% 
     dplyr::filter(raw_food_id == new_entry$raw_food_id[1]) %>% 
     dplyr::filter(raw_food_serving_unit == new_entry$raw_food_serving_unit[1])

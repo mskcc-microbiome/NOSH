@@ -72,16 +72,22 @@ NOSH <- function(tbl_width=1200, tbl_height=500, ...){
       hideTab(inputId = "tabs", target = "Upload Computrition Data")
       hideTab(inputId = "tabs", target = "Review Unit Table")
     }
+    # TODO: move this to something more robust once new computrition database is supported
+    if(Sys.getenv("NOSH_USER_TYPE") %in% c("PEDS")){
+      print(paste("NOSH_USER_TYPE is", Sys.getenv("NOSH_USER_TYPE"), "; Disabling unit table adjuster and patient explorer"))
+      hideTab(inputId = "tabs", target = "Review Unit Table")
+      hideTab(inputId = "tabs", target = "Patient Meal Explorer")
+    }
     rv <- reactiveValues(current_redcap_diet_data=init_data$df, 
                          patients=init_data$patients)
     # computrition upload
     mod_loadfile_server("uploadfile", rv)
     # fndds matcher
-    mod_matchFNDDS_server("foodmatch", df = unannotated_food)
+    if (!Sys.getenv("NOSH_USER_TYPE") %in% c("PEDS"))  mod_matchFNDDS_server("foodmatch", df = unannotated_food)
     # data overview
     mod_dashboard_server("dashboard", rv)
     # 
-    mod_patientdash_server("patient", rv)
+    if (!Sys.getenv("NOSH_USER_TYPE") %in% c("PEDS"))    mod_patientdash_server("patient", rv)
   }
   shinyApp(ui, server)
 }
