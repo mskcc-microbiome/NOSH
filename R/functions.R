@@ -5,12 +5,12 @@ clean_diet_file <- function(filepath){
       select(where(function(x) any(!is.na(x))))
   computrition_export <- computrition_export_raw
   
-  new_names <- computrition_export[stringr::str_detect(computrition_export$name, "Menu Item"),] %>%
+  new_names <- computrition_export[grepl("Menu Item", computrition_export$name),] %>%
     slice(1) %>%
     as.character() %>%
     stringr::str_replace_all("\n|\r", "") %>% as.vector()
   
-  new_names[is.na(new_names)] <- c("meal", "mrn")
+  new_names[is.na(new_names)] <- c(c("meal", "mrn"), rep(x = NA, times=sum(is.na(new_names)) - 2))
   
   names(computrition_export) <- new_names
   
@@ -31,13 +31,20 @@ clean_diet_file <- function(filepath){
     ) %>%
     tidyr::fill(c("meal", "mrn", "meal_date"), .direction = "down") %>%
     dplyr::filter(!is.na(meal) & !is.na(menu_item_name) & !menu_item_name %in% remove_items) %>% 
-    dplyr::filter(!grepl("\\*{8}", menu_item_name)) %>% # gets rid of
+    dplyr::filter(!grepl("\\*{8}", menu_item_name)) %>% # gets rid of enties tagged with many asterisks
     dplyr::filter(!grepl("condiments, (salt|pepper)", tolower(menu_item_name))) %>%
     dplyr::filter(!grepl("(daily|\\d{1}) (value|average|total)", tolower(menu_item_name))) %>% 
     dplyr::filter(!grepl("Date:  ", menu_item_name))  
   
-#    dplyr::filter(!stringr::str_detect(tolower(menu_item_name), "(daily|[:digit:]{1} (value|average|total))|(condiments, (salt|pepper))|(\\*{8})")) %>% 
+  # support Amount Eaten column
+  if (any(startsWith(colnames(computrition_export_clean), "amount_eaten"))){
+    if ("portion_consumed" %in% colnames(computrition_export_clean)){
+      warning("Cannot have both 'portion_consumed' and 'amount_eaten' columns in the same sheet")
+    }
+    computrition_export_clean$portion_consumed = computrition_export_clean %>% dplyr::pull(which(startsWith(colnames(computrition_export_clean), "amount_eaten"))[1])
     
+    
+  }
      
   hide_computrition_portion_consumed = FALSE
   if (! "portion_consumed" %in% colnames(computrition_export_clean)){
@@ -183,7 +190,6 @@ clean_diet_redcap <- function(redcap_pull) {
 }
 
 push_to_redcap <- function(clean_diet_table, session) {
-
   # need the following fields
   tbl_names <-  c("record_id", "redcap_event_name", "redcap_repeat_instrument", "redcap_repeat_instance", "eb_mrn",
   "meal_date", "meal", "raw_food_id", "raw_food_serving_unit", "serving_size", "amt_eaten", "upload_date", "uploader")
@@ -265,12 +271,10 @@ push_to_redcap <- function(clean_diet_table, session) {
 
   
 #  check <- c(REDCapR::validate_for_write(formatted_tbl_final[1:10,] %>% select(-eb_mrn))
-
   write_result <- REDCapR::redcap_write(
     ds_to_write = formatted_tbl_final,
     redcap_uri = Sys.getenv("DIETDATA_REDCAP_URI"),
     token = Sys.getenv("DIETDATA_REDCAP_TOKEN"),
-    #config_options = redcap_config_options,
     overwrite_with_blanks = FALSE, # for now we can keep what is already in there
     verbose = FALSE # don't print any details (to minimize printing of PHI)
   )

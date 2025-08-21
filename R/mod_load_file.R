@@ -60,14 +60,18 @@ mod_loadfile_server <- function(id, rv) {
       ext
       
     })
+    # see date issue https://stackoverflow.com/questions/54814010/
     output$diet_file <- rhandsontable::renderRHandsontable({
       rhandsontable::rhandsontable(
-        raw_file() %>% dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
+        raw_file() %>% 
+          dplyr::mutate(meal_date = format(as.Date(meal_date, origin = "1970-01-01"), "%m/%d/%Y")) %>% 
+          dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
           dplyr::select(-id) %>%
           dplyr::rename(any_of(pretty_names))
         ) %>% 
         rhandsontable::hot_cols(fixedColumnsLeft = 2) %>% 
-        rhandsontable::hot_col("Computrition\nTicket Item",  strict=FALSE, type="autocomplete")
+        rhandsontable::hot_col("Computrition\nTicket Item",  strict=FALSE, type="autocomplete") %>%
+        rhandsontable::hot_col("Date", dateFormat = "MM/DD/YYYY", type = "date")
       
     })
     
@@ -80,6 +84,7 @@ mod_loadfile_server <- function(id, rv) {
       diet_table_raw <- rhandsontable::hot_to_r(input$diet_file)
       diet_table <- diet_table_raw %>%
         dplyr::rename(any_of(pretty_names_inv)) %>% 
+        dplyr::mutate(meal_date = lubridate::mdy(meal_date)) %>% 
         filter(!is.na(amt_eaten))
       if (nrow(diet_table) > 0 ){
         showNotification(paste("Uploading ", nrow(diet_table), "rows of data"))
