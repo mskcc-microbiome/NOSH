@@ -60,7 +60,9 @@ mod_loadfile_server <- function(id, rv) {
     })
     output$diet_file <- rhandsontable::renderRHandsontable({
       rhandsontable::rhandsontable(
-        raw_file() %>% dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
+        raw_file() %>%
+          dplyr::mutate(meal_date=format(meal_date, format="%Y-%m-%d")) %>%
+          dplyr::filter(!id %in% rv$current_redcap_diet_data$id) %>%
           dplyr::select(-id) %>%
           dplyr::rename(any_of(pretty_names))
         
