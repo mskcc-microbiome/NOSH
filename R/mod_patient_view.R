@@ -13,7 +13,7 @@ mod_patientdash_ui <- function(id) {
 mod_patientdash_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
     pt_data_full_merge <- reactive({
-      merge_meals_and_units(dev_data = rv$current_redcap_diet_data, unittable = unittable, fndds_summary = fndds_summary)
+      merge_meals_and_units(dev_data = rv$current_redcap_diet_data, unittable = get_redcap_unit_table(), fndds_summary = fndds_summary)
     })
     observe({
       output$patient_completeness<- renderText(pt_data_full_merge()$status)

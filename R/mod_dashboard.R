@@ -27,7 +27,7 @@ mod_meal_histogram_ui <- function(id) {
 mod_dashboard_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
     pt_data_full_merge <- reactive({
-      merge_meals_and_units(dev_data = rv$current_redcap_diet_data, unittable = unittable, fndds_summary = fndds_summary)
+      merge_meals_and_units(dev_data = rv$current_redcap_diet_data, unittable = get_redcap_unit_table(), fndds_summary = fndds_summary)
     })
     # reactive function to send the user input to ggplot
     # get_plot_data <- reactive({
